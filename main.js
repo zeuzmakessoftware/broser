@@ -66,6 +66,40 @@ ipcMain.handle('db:get-citations', async () => {
   }
 });
 
+// Workspace Handlers
+ipcMain.handle('db:get-workspaces', async () => {
+  try {
+    return await Workspace.find().sort({ createdAt: -1 });
+  } catch (error) {
+    console.error('Error fetching workspaces:', error);
+    return [];
+  }
+});
+
+ipcMain.handle('db:create-workspace', async (event, title) => {
+  try {
+    const workspace = await Workspace.create({ title });
+    return { success: true, workspace };
+  } catch (error) {
+    console.error('Error creating workspace:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('db:get-workspace-data', async (event, workspaceId) => {
+  try {
+    const [notes, sources, citations] = await Promise.all([
+      Note.find({ workspaceId }).sort({ createdAt: -1 }),
+      Source.find({ workspaceId }).sort({ createdAt: -1 }),
+      Citation.find({ workspaceId }).sort({ createdAt: -1 })
+    ]);
+    return { notes, sources, citations };
+  } catch (error) {
+    console.error('Error fetching workspace data:', error);
+    return { notes: [], sources: [], citations: [] };
+  }
+});
+
 // AI & Voice Handler
 ipcMain.handle('ai:chat', async (event, prompt) => {
   try {

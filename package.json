@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "description": "A simple Electron-based web browser",
   "main": "main.js",
-  "scripts": {
-    "start": "electron ."
-  },
   "keywords": [
     "electron",
     "browser",
@@ -14,6 +11,30 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^34.0.0"
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "pack": "electron-builder --dir",
+    "postinstall": "node scripts/patch-plist.js"
+  },
+  "dependencies": {
+    "@elevenlabs/elevenlabs-js": "^2.31.0",
+    "@google/generative-ai": "^0.24.1",
+    "dotenv": "^17.2.3",
+    "mongoose": "^9.1.4"
+  },
+  "build": {
+    "appId": "com.zeuzmakessoftware.broser",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "extendInfo": {
+        "NSCameraUsageDescription": "This app requires camera access for video conferencing and AI vision features.",
+        "NSMicrophoneUsageDescription": "This app requires microphone access for voice commands and AI interaction.",
+        "NSCameraUseContinuityCameraDeviceType": true
+      }
+    }
   }
 }

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Simple Browser</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      font-family: sans-serif;
+      overflow: hidden;
+    }
+    #controls {
+      display: flex;
+      padding: 8px;
+      background: #f0f0f0;
+      border-bottom: 1px solid #ccc;
+      gap: 8px;
+      align-items: center;
+    }
+    #url-bar {
+      flex-grow: 1;
+      padding: 6px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+    webview {
+      flex-grow: 1;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <button id="back">Back</button>
+    <button id="forward">Forward</button>
+    <button id="reload">Reload</button>
+    <input type="text" id="url-bar" placeholder="Enter URL (e.g. https://google.com)" />
+    <button id="go">Go</button>
+  </div>
+  
+  <webview id="view" src="https://www.google.com"></webview>
+  
+  <script src="renderer.js"></script>
+</body>
+</html>

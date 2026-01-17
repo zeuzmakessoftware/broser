@@ -1,0 +1,19 @@
+{
+  "name": "broser",
+  "version": "1.0.0",
+  "description": "A simple Electron-based web browser",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [
+    "electron",
+    "browser",
+    "webview"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^34.0.0"
+  }
+}

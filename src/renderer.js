@@ -55,6 +55,7 @@ btnReload.addEventListener('click', () => {
 
 // Sidebar Logic
 let isPanelOpen = false;
+let currentUploadContext = ""; // Store text from uploaded file
 
 function togglePanel(mode) {
     if (isPanelOpen && sidePanel.dataset.mode === mode) {
@@ -85,14 +86,201 @@ async function loadSidePanelContent(mode) {
 
 function renderNotes(notes) {
     panelContent.innerHTML = '';
+
+    // Header for controls
+    const controls = document.createElement('div');
+    controls.style = "display: flex; justify-content: flex-end; margin-bottom: 5px;";
+
+    const btnExpand = document.createElement('button');
+    btnExpand.innerHTML = '<i class="fas fa-expand-alt"></i>'; // Initial icon
+    btnExpand.title = "Toggle Expanded View";
+    btnExpand.style = "background: transparent; border: none; color: #888; cursor: pointer; font-size: 14px;";
+    controls.appendChild(btnExpand);
+
+    panelContent.appendChild(controls);
+
+    // 1. Notes List Container
+    const listContainer = document.createElement('div');
+    listContainer.id = 'notes-list-container';
+    listContainer.style = "flex: 1; overflow-y: auto; margin-bottom: 20px; padding-right: 5px; transition: flex 0.3s ease;";
+
     notes.forEach(note => {
         const div = document.createElement('div');
         div.className = 'note-card';
-        div.style = 'background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 10px; border-radius: 8px; font-size: 13px;';
+        div.style = 'background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 10px; border-radius: 8px; font-size: 13px; word-wrap: break-word;';
         div.innerText = note.content;
-        panelContent.appendChild(div);
+        listContainer.appendChild(div);
+    });
+    panelContent.appendChild(listContainer);
+
+    // 2. Chat / Assistant Section
+    const chatSection = document.createElement('div');
+    chatSection.id = 'chat-section';
+    chatSection.style = "border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; display: flex; flex-direction: column; height: 300px; flex-shrink: 0; transition: height 0.3s ease;";
+
+    chatSection.innerHTML = `
+        <h3 style="margin: 0 0 10px 0; font-size: 14px; color: var(--accent-color); display: flex; justify-content: space-between; align-items: center;">
+            <span>Assistant</span>
+            <span id="upload-status" style="font-size: 10px; color: #888; font-weight: normal;"></span>
+        </h3>
+        
+        <div id="chat-history" style="flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px; margin-bottom: 10px; font-size: 12px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="color: #666; text-align: center; font-style: italic;">Upload a file to summarize, or ask questions about your notes.</div>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+             <input type="file" id="file-upload" style="display: none;" accept=".txt,.md,.js,.json,.html">
+             <button id="btn-upload" title="Upload File" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 6px; width: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-paperclip"></i>
+             </button>
+             <button id="btn-summ-page" title="Summarize Web Page" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 6px; width: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-globe"></i>
+             </button>
+             <input type="text" id="chat-input" placeholder="Ask connecting notes..." style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 6px; padding: 8px; outline: none;">
+             <button id="btn-send-chat" style="background: var(--accent-color); border: none; color: black; border-radius: 6px; width: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-arrow-up"></i>
+             </button>
+        </div>
+    `;
+    panelContent.appendChild(chatSection);
+
+    // Event Listeners for Chat UI
+    const btnUpload = document.getElementById('btn-upload');
+    const btnSummPage = document.getElementById('btn-summ-page');
+    const fileInput = document.getElementById('file-upload');
+    const btnSend = document.getElementById('btn-send-chat');
+    const chatInput = document.getElementById('chat-input');
+    const chatHistory = document.getElementById('chat-history');
+    const uploadStatus = document.getElementById('upload-status');
+
+    // Toggle logic
+    let isExpanded = false;
+    btnExpand.addEventListener('click', () => {
+        isExpanded = !isExpanded;
+        if (isExpanded) {
+            // Expanded mode: Notes list takes full space, chat minimizes?
+            // Actually request was "expand the notes column on top".
+            // Let's interpret as making the notes list bigger / hiding chat or resizing.
+            // Let's try minimizing the chat section.
+            chatSection.style.height = '60px'; // Minimized height
+            chatSection.style.overflow = 'hidden';
+            btnExpand.innerHTML = '<i class="fas fa-compress-alt"></i>';
+        } else {
+            chatSection.style.height = '300px';
+            chatSection.style.overflow = 'visible'; // Restore overflow
+            btnExpand.innerHTML = '<i class="fas fa-expand-alt"></i>';
+        }
+    });
+
+    function addMessage(text, isUser = false) {
+        const msgDiv = document.createElement('div');
+        msgDiv.style = `
+            align-self: ${isUser ? 'flex-end' : 'flex-start'};
+            background: ${isUser ? 'var(--accent-color)' : 'rgba(255,255,255,0.1)'};
+            color: ${isUser ? 'black' : 'white'};
+            padding: 6px 10px;
+            border-radius: 8px;
+            max-width: 85%;
+            word-wrap: break-word;
+        `;
+
+        // Simple formatting for bullet points and bold
+        let formattedText = text;
+        if (!isUser) {
+            // Check for markdown bullets
+            formattedText = formattedText.replace(/\n\*/g, '<br>•').replace(/\n-/g, '<br>•');
+            // Bold
+            formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+        }
+
+        msgDiv.innerHTML = formattedText;
+        chatHistory.appendChild(msgDiv);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    // File Upload Handler
+    btnUpload.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            uploadStatus.innerText = `Reading ${file.name}...`;
+
+            try {
+                // Read file
+                const text = await file.text();
+                currentUploadContext = text; // Set global context
+                uploadStatus.innerText = "Summarizing...";
+                addMessage(`Uploaded ${file.name}. Summarizing...`, true);
+
+                // Call Summarize API
+                const result = await ipcRenderer.invoke('ai:summarize', text);
+                addMessage(result.summary);
+                uploadStatus.innerText = "File loaded";
+
+            } catch (err) {
+                console.error("Upload error:", err);
+                uploadStatus.innerText = "Error";
+                addMessage("Failed to read or process file.");
+            }
+        }
+    });
+
+    // Summarize Page Handler
+    btnSummPage.addEventListener('click', async () => {
+        try {
+            uploadStatus.innerText = "Reading Page...";
+            // Execute script in webview to get text
+            const pageText = await webview.executeJavaScript('document.body.innerText');
+
+            if (!pageText || pageText.length < 50) {
+                addMessage("Page content seems empty or too short.", true);
+                uploadStatus.innerText = "";
+                return;
+            }
+
+            currentUploadContext = pageText;
+            uploadStatus.innerText = "Summarizing Page...";
+            addMessage(`Summarizing current page...`, true);
+
+            const result = await ipcRenderer.invoke('ai:summarize', pageText);
+            addMessage(result.summary);
+            uploadStatus.innerText = "Page Loaded";
+
+        } catch (err) {
+            console.error("Page Summarize Error:", err);
+            addMessage("Failed to read page content.");
+            uploadStatus.innerText = "Error";
+        }
+    });
+
+    // Chat Handler
+    async function sendChat() {
+        const query = chatInput.value.trim();
+        if (!query) return;
+
+        addMessage(query, true);
+        chatInput.value = '';
+
+        // Show typing indicator or something?
+        // Call UI updates async
+        try {
+            const result = await ipcRenderer.invoke('ai:chat-notes', {
+                query,
+                context: currentUploadContext
+            });
+            addMessage(result.response);
+        } catch (err) {
+            addMessage("Error getting response.");
+        }
+    }
+
+    btnSend.addEventListener('click', sendChat);
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendChat();
     });
 }
+
 
 function renderTasks(tasks) {
     panelContent.innerHTML = '';

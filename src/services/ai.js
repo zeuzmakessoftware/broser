@@ -90,4 +90,45 @@ async function processPrompt(input) {
     }
 }
 
-module.exports = { processPrompt };
+async function processChatWithContext(query, contextNotes) {
+    try {
+        // Construct a context-aware prompt
+        const initialPrompt = `You are a helpful assistant. Here is some context from my notes:\n${contextNotes}\n\nAnswer my questions based on this context. If the answer is not in the notes, say so, but try to be helpful.`;
+
+        const chat = model.startChat({
+            history: [
+                { role: 'user', parts: [{ text: initialPrompt }] },
+                { role: 'model', parts: [{ text: 'Understood. I will answer based on your notes.' }] }
+            ]
+        });
+
+        const result = await chat.sendMessage(query);
+        return {
+            response: result.response.text()
+        };
+
+    } catch (error) {
+        console.error('AI Chat Context Error:', error);
+        return {
+            response: "I'm sorry, I encountered an error analyzing your notes."
+        };
+    }
+}
+
+async function summarizeContent(text) {
+    try {
+        const prompt = `Summarize the following text concisely in bullet points:\n\n${text}`;
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        return {
+            summary: response.text()
+        };
+    } catch (error) {
+        console.error('AI Summarize Error:', error);
+        return {
+            summary: "I couldn't generate a summary for this content."
+        };
+    }
+}
+
+module.exports = { processPrompt, processChatWithContext, summarizeContent };

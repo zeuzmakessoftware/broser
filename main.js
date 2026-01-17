@@ -144,6 +144,26 @@ app.whenReady().then(() => {
     }
   });
 
+  // New AI Handlers
+  ipcMain.handle('ai:summarize', async (event, text) => {
+    return await require('./src/services/ai').summarizeContent(text);
+  });
+
+  ipcMain.handle('ai:chat-notes', async (event, { query, context }) => {
+    // If context is not provided, fetch all notes from DB
+    let finalContext = context;
+    if (!finalContext) {
+      try {
+        const notes = await Note.find().sort({ createdAt: -1 });
+        finalContext = notes.map(n => n.content).join('\n---\n');
+      } catch (e) {
+        console.error("Error fetching notes for context", e);
+        finalContext = "";
+      }
+    }
+    return await require('./src/services/ai').processChatWithContext(query, finalContext);
+  });
+
   ipcMain.handle('db:create-task', async (event, title) => {
     try {
       const task = await Task.create({ title });

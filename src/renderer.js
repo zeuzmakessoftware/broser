@@ -12,7 +12,7 @@ const panelTitle = document.getElementById('panel-title');
 
 // Sidebar Buttons
 const btnNotes = document.getElementById('btn-notes');
-const btnTasks = document.getElementById('btn-tasks');
+const btnResearch = document.getElementById('btn-research');
 
 // Navigation Logic
 omnibox.addEventListener('keydown', (e) => {
@@ -281,29 +281,215 @@ function renderNotes(notes) {
     });
 }
 
+// Research State
+let currentWorkspaceId = null;
+let currentResearchTab = 'sources'; // 'sources', 'notes', 'citations'
 
-function renderTasks(tasks) {
+async function renderResearch(sources, citations) { // The old signature is partial, we need to fetch data based on workspace
+    // Ideally, loadSidePanelContent calls renderResearch with NO args, and renderResearch fetches what it needs.
+    // But for now, let's just redraw the structure and fetch inside.
+}
+
+async function loadSidePanelContent(mode) {
+    if (mode === 'research') {
+        const workspaces = await ipcRenderer.invoke('db:get-workspaces');
+        await renderResearchPanel(workspaces);
+    } else if (mode === 'notes') {
+        // ... (existing notes logic)
+        const notes = await ipcRenderer.invoke('db:get-notes'); // These are global notes? Or we deprecate 'notes' mode?
+        // Let's keep 'notes' mode as "Quick Notes" (global).
+        // Research mode has "Research Notes".
+        renderNotes(notes);
+    }
+}
+
+async function renderResearchPanel(workspaces) {
     panelContent.innerHTML = '';
-    tasks.forEach(task => {
-        const div = document.createElement('div');
-        div.className = 'task-card';
-        div.style = 'background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 10px; border-radius: 8px; font-size: 13px; display: flex; align-items: center; justify-content: space-between;';
 
-        const span = document.createElement('span');
-        span.innerText = task.title;
+    // 1. Workspace Selector Header
+    const header = document.createElement('div');
+    header.style = "padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px;";
 
-        const check = document.createElement('input');
-        check.type = 'checkbox';
-        check.checked = task.completed;
+    // Dropdown
+    const select = document.createElement('select');
+    select.style = "width: 100%; background: rgba(0,0,0,0.3); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 5px; margin-bottom: 5px;";
 
-        div.appendChild(span);
-        div.appendChild(check);
-        panelContent.appendChild(div);
+    const defaultOption = document.createElement('option');
+    defaultOption.text = "Select Topic...";
+    defaultOption.value = "";
+    select.appendChild(defaultOption);
+
+    workspaces.forEach(ws => {
+        const opt = document.createElement('option');
+        opt.value = ws._id;
+        opt.text = ws.title;
+        if (ws._id === currentWorkspaceId) opt.selected = true;
+        select.appendChild(opt);
+    });
+
+    select.addEventListener('change', async (e) => {
+        currentWorkspaceId = e.target.value;
+        await refreshResearchView();
+    });
+    header.appendChild(select);
+
+    // Create New Button
+    const createContainer = document.createElement('div');
+    createContainer.style = "display: flex; gap: 5px;";
+
+    const inputNew = document.createElement('input');
+    inputNew.placeholder = "New Topic...";
+    inputNew.style = "flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 4px; padding: 4px;";
+
+    const btnCreate = document.createElement('button');
+    btnCreate.innerText = "+";
+    btnCreate.style = "background: var(--accent-color); color: black; border: none; border-radius: 4px; padding: 0 10px; cursor: pointer;";
+
+    btnCreate.onclick = async () => {
+        if (inputNew.value.trim()) {
+            const res = await ipcRenderer.invoke('db:create-workspace', inputNew.value.trim());
+            if (res.success) {
+                currentWorkspaceId = res.workspace._id;
+                // Refresh list
+                const ws = await ipcRenderer.invoke('db:get-workspaces');
+                renderResearchPanel(ws);
+            }
+        }
+    };
+
+    createContainer.appendChild(inputNew);
+    createContainer.appendChild(btnCreate);
+    header.appendChild(createContainer);
+    panelContent.appendChild(header);
+
+    if (!currentWorkspaceId) {
+        panelContent.innerHTML += `<div style="text-align: center; color: #666; margin-top: 20px;">Select or create a research topic.</div>`;
+        return;
+    }
+
+    // 2. Search & Tabs
+    await renderWorkspaceContent();
+}
+
+async function renderWorkspaceContent() {
+    // Fetch data for current workspace
+    const data = await ipcRenderer.invoke('db:get-workspace-data', currentWorkspaceId);
+
+    // Container for Tabs and Search
+    const controls = document.createElement('div');
+
+    // Search
+    const searchInput = document.createElement('input');
+    searchInput.placeholder = "Search resources...";
+    searchInput.style = "width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 6px; padding: 6px; margin-bottom: 10px;";
+    searchInput.addEventListener('input', (e) => filterLists(e.target.value));
+    controls.appendChild(searchInput);
+
+    // Tabs
+    const tabs = document.createElement('div');
+    tabs.style = "display: flex; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px;";
+
+    ['sources', 'notes', 'citations'].forEach(tab => {
+        const btn = document.createElement('div');
+        btn.innerText = tab.charAt(0).toUpperCase() + tab.slice(1);
+        btn.style = `flex: 1; text-align: center; padding: 8px; cursor: pointer; font-size: 13px; color: ${currentResearchTab === tab ? 'var(--accent-color)' : '#888'}; border-bottom: ${currentResearchTab === tab ? '2px solid var(--accent-color)' : 'none'};`;
+        btn.onclick = () => {
+            currentResearchTab = tab;
+            renderWorkspaceViews(data); // Re-render content
+            // Update tab styles (simple hack: re-render whole content or manipulate DOM. Re-rendering 'tabs' part is cleaner if separated, but let's just re-call renderWorkspaceContent or update manually)
+            // For MVP, recursing renderWorkspaceContent updates everything including fetching data again. 
+            // Better: split renderWorkspaceContent into renderControls and renderLists.
+            // Let's just update styles manually and call renderLists.
+            Array.from(tabs.children).forEach(c => {
+                c.style.color = '#888';
+                c.style.borderBottom = 'none';
+            });
+            btn.style.color = 'var(--accent-color)';
+            btn.style.borderBottom = '2px solid var(--accent-color)';
+            renderLists(data, contentContainer);
+        };
+        tabs.appendChild(btn);
+    });
+    controls.appendChild(tabs);
+    panelContent.appendChild(controls);
+
+    // Content Area
+    const contentContainer = document.createElement('div');
+    contentContainer.id = "research-content-list";
+    contentContainer.style = "flex: 1; overflow-y: auto;";
+    panelContent.appendChild(contentContainer);
+
+    renderLists(data, contentContainer);
+}
+
+function renderLists(data, container) {
+    container.innerHTML = '';
+
+    if (currentResearchTab === 'sources') {
+        data.sources.forEach(source => {
+            const card = document.createElement('div');
+            card.className = 'list-item'; // for search
+            card.style = 'background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 8px; border-radius: 6px; cursor: pointer;';
+            card.innerHTML = `
+                <div class="search-target" style="font-weight: bold; font-size: 13px; margin-bottom: 4px;">${source.title || 'Untitled'}</div>
+                 <div style="font-size: 11px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${source.url}</div>
+                 <div style="margin-top: 6px;">
+                    ${(source.tags || []).map(t => {
+                let color = '#888';
+                if (t.includes('support')) color = 'var(--accent-color)'; // cyan
+                if (t.includes('oppos')) color = '#ff4757'; // red
+                if (t.includes('neut')) color = '#ffa502'; // orange
+                return `<span style="display: inline-block; background: rgba(255,255,255,0.1); color: ${color}; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-right: 4px;">${t}</span>`;
+            }).join('')}
+                 </div>
+           `;
+            card.onclick = () => webview.loadURL(source.url);
+            container.appendChild(card);
+        });
+    } else if (currentResearchTab === 'notes') {
+        data.notes.forEach(note => {
+            const card = document.createElement('div');
+            card.className = 'list-item';
+            card.style = 'background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 8px; border-radius: 6px; font-size: 13px; white-space: pre-wrap;';
+            card.innerHTML = `<div class="search-target">${note.content}</div>`;
+            container.appendChild(card);
+        });
+    } else if (currentResearchTab === 'citations') {
+        data.citations.forEach(cit => {
+            const card = document.createElement('div');
+            card.className = 'list-item';
+            card.style = 'background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 8px; border-radius: 6px; border-left: 3px solid var(--accent-secondary);';
+            card.innerHTML = `
+                <div class="search-target" style="font-style: italic; font-size: 13px; margin-bottom: 5px;">"${cit.content}"</div>
+                <div style="font-size: 11px; color: #aaa;">${cit.sourceUrl}</div>
+                <div style="font-size: 10px; color: #666; margin-top: 5px; text-transform: uppercase;">${cit.citationStyle || 'Auto'}</div>
+            `;
+            container.appendChild(card);
+        });
+    }
+}
+
+function filterLists(query) {
+    const items = document.querySelectorAll('.list-item');
+    query = query.toLowerCase();
+    items.forEach(item => {
+        const text = item.querySelector('.search-target')?.innerText.toLowerCase() || "";
+        if (text.includes(query)) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
     });
 }
 
+async function refreshResearchView() {
+    const workspaces = await ipcRenderer.invoke('db:get-workspaces');
+    renderResearchPanel(workspaces);
+}
+
 btnNotes.addEventListener('click', () => togglePanel('notes'));
-btnTasks.addEventListener('click', () => togglePanel('tasks'));
+btnResearch.addEventListener('click', () => togglePanel('research'));
+
 
 // AI / Voice Logic
 let isListening = false;
@@ -364,9 +550,37 @@ function stopListening() {
 
 async function handleAIPrompt(prompt) {
     console.log('Processing AI Prompt:', prompt);
-    // 1. Send to Main -> Gemini
-    // 2. Main returns action or response
-    // 3. Perform action (navigate) or speak response
+
+    // Inject Context (URL, Title, Selection)
+    let context = {};
+    if (typeof prompt === 'string' || prompt.audio) {
+        try {
+            const title = await webview.getTitle();
+            const url = webview.getURL();
+            // Attempt to get selection
+            const selection = await webview.executeJavaScript('window.getSelection().toString()');
+
+            context = { title, url, selection };
+
+            // Inject Workspace ID if selected
+            if (isPanelOpen && sidePanel.dataset.mode === 'research' && currentWorkspaceId) {
+                context.workspaceId = currentWorkspaceId;
+            }
+
+            // If request is object (audio), attach context
+            if (typeof prompt === 'object' && prompt.audio) {
+                prompt.context = context;
+            } else if (typeof prompt === 'string') {
+                // If string, we might need to wrap it
+                // The main process expects 'prompt' to be string or object
+                // Let's change the contract in main? Or wrap here.
+                // Update: ai:chat handler expects 'prompt'. The service can handle { text, context }.
+                prompt = { text: prompt, context };
+            }
+        } catch (e) {
+            console.log("Could not get webview context", e);
+        }
+    }
 
     try {
         const result = await ipcRenderer.invoke('ai:chat', prompt);
@@ -380,6 +594,31 @@ async function handleAIPrompt(prompt) {
 
         if (result.type === 'NAVIGATE') {
             webview.loadURL(result.payload);
+        } else if (result.type === 'SAVE_SOURCE' || result.type === 'SAVE_CITATION' || result.type === 'CREATE_NOTE') {
+            // Refresh panel if open
+            if (isPanelOpen && sidePanel.dataset.mode === 'research') {
+                if (currentWorkspaceId) {
+                    renderWorkspaceContent(); // Refresh tabs
+                    // Ideally we should switch tab if needed? e.g. if I saved a source, go to sources tab.
+                    if (result.type === 'SAVE_SOURCE') {
+                        currentResearchTab = 'sources';
+                        // Trigger click logic manually or update UI
+                        // renderWorkspaceContent() handles currentResearchTab
+                    } else if (result.type === 'SAVE_CITATION') {
+                        currentResearchTab = 'citations';
+                    } else if (result.type === 'CREATE_NOTE' && result.payload.workspaceId) {
+                        currentResearchTab = 'notes';
+                    }
+                    renderWorkspaceContent(); // Call again to reflect tab change
+                } else {
+                    loadSidePanelContent('research'); // Fallback if no workspace selected/concept
+                }
+            } else if (isPanelOpen && sidePanel.dataset.mode === 'notes' && result.type === 'CREATE_NOTE') {
+                loadSidePanelContent('notes');
+            }
+
+            // Show notification toast?
+            new Notification('Broser Research', { body: result.response });
         }
 
     } catch (err) {

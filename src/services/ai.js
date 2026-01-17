@@ -4,64 +4,77 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' }); // Using a fast model
 
 const SYSTEM_PROMPT = `
-You are a smart browser assistant.
+You are a smart research assistant and browser interface.
 You have control over the browser.
-Your goal is to help the user navigate, manage tasks, and answer questions.
+Your goal is to help the user navigate, research topics, and manage notes.
 
 User inputs might be voice audio or typed text.
 
 Determine if the user wants to:
 1. NAVIGATE to a website.
-2. CREATE_TASK (e.g. "remind me to...", "add task...").
-3. CREATE_NOTE (e.g. "note that...", "save note...").
-4. ANSWER a question or CHAT.
+2. SAVE_SOURCE (e.g. "save this page", "add to sources").
+3. SAVE_CITATION (e.g. "save this quote", "cite this").
+4. CREATE_NOTE (e.g. "note that...", "write down...").
+5. ANSWER a question or CHAT.
 
-You must ALWAYS return a valid JSON object. Do not return any other text.
+You must ALWAYS return a valid JSON object.
 Format:
 {
-  "type": "NAVIGATE" | "CREATE_TASK" | "CREATE_NOTE" | "ANSWER",
-  "payload": string | object,
-  "response": string (short spoken response)
+  "type": "NAVIGATE" | "SAVE_SOURCE" | "SAVE_CITATION" | "CREATE_NOTE" | "ANSWER",
+  "payload": object,
+  "response": string
 }
 
+Payload Structures:
+- SAVE_SOURCE: { "url": "URL", "title": "TITLE", "summary": "Short summary", "tags": ["supporting"|"opposing"|"neutral", "other_tags"], "workspaceId": "ID_FROM_CONTEXT" }
+- SAVE_CITATION: { "content": "QUOTE", "sourceUrl": "URL", "citationStyle": "APA", "workspaceId": "ID_FROM_CONTEXT" }
+- CREATE_NOTE: { "content": "NOTE_TEXT", "workspaceId": "ID_FROM_CONTEXT" }
+- NAVIGATE: "url_string"
+
+Argument Tagging:
+- Analyze the content/context. Determine if it likely SUPPORTS, OPPOSES, or is NEUTRAL to the user's research topic (if known, otherwise guess based on content sentiment/bias). Always add one of these tags.
+
+
 Examples:
-- "Go to youtube" -> { "type": "NAVIGATE", "payload": "https://youtube.com", "response": "Opening YouTube." }
-- "Remind me to buy milk" -> { "type": "CREATE_TASK", "payload": { "title": "Buy milk" }, "response": "I've added that to your tasks." }
-- "What is the capital of France?" -> { "type": "ANSWER", "payload": null, "response": "The capital of France is Paris." }
+- "Save this page" -> { "type": "SAVE_SOURCE", "payload": { "needs_context": true }, "response": "Saving source..." }
+  (Note: The Main process will check 'needs_context' and inject current URL/Title if missing)
+
+For now, if you don't have the current page URL/Title, just return the intent and I will handle it in the app logic, OR assume the user provided it.
+Actually, better approach: The system will provide context.
 `;
 
 async function processPrompt(input) {
     try {
         const parts = [{ text: SYSTEM_PROMPT }];
 
+        // Input handling
         let userPart;
         if (typeof input === 'string') {
             userPart = { text: input };
         } else if (input.audio) {
-            // content is base64 string
             userPart = {
                 inlineData: {
-                    mimeType: "audio/webm", // Match MediaRecorder output
+                    mimeType: "audio/webm",
                     data: input.audio
                 }
             };
+        } else if (input.context) {
+            // If we passed context (url, title, selection)
+            userPart = { text: `Context: ${JSON.stringify(input.context)}\nUser: ${input.text || "Process context"}` };
         }
 
         const chat = model.startChat({
             history: [
                 { role: 'user', parts: [{ text: SYSTEM_PROMPT }] },
-                { role: 'model', parts: [{ text: 'Understood. I am ready to assist.' }] }
+                { role: 'model', parts: [{ text: 'Understood. Ready for research.' }] }
             ]
         });
 
         const result = await chat.sendMessage([userPart]);
         const responseText = result.response.text();
 
-        // Parse JSON from response
-        // Gemini might wrap in markdown code blocks ```json ... ```
+        // Parse JSON
         let cleanText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-
-        // Sometimes Gemini might add extra text outside json, crude extraction:
         const firstBrace = cleanText.indexOf('{');
         const lastBrace = cleanText.lastIndexOf('}');
         if (firstBrace !== -1 && lastBrace !== -1) {
@@ -71,12 +84,11 @@ async function processPrompt(input) {
         try {
             return JSON.parse(cleanText);
         } catch (e) {
-            console.warn('Non-JSON response received:', cleanText);
-            // Fallback
+            console.warn('Non-JSON response:', cleanText);
             return {
                 type: 'ANSWER',
                 payload: null,
-                response: responseText // Just speak the raw text if json fails
+                response: responseText
             };
         }
 
@@ -85,7 +97,7 @@ async function processPrompt(input) {
         return {
             type: 'ANSWER',
             payload: null,
-            response: "I'm sorry, I couldn't process that request."
+            response: "I couldn't process that."
         };
     }
 }

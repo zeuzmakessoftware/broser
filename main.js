@@ -1,11 +1,125 @@
 const { app, BrowserWindow, ipcMain, session, systemPreferences } = require('electron');
 const path = require('path');
 const connectDB = require('./src/db');
+
+// Models
 const Note = require('./src/models/Note');
 const Task = require('./src/models/Task');
+const Source = require('./src/models/Source');
+const Citation = require('./src/models/Citation');
+const Workspace = require('./src/models/Workspace');
 
 // Connect to MongoDB
 connectDB();
+// ... (Window creation logic remains)
+
+ipcMain.handle('db:save-note', async (event, content) => {
+  try {
+    const note = await Note.create({ content });
+    return { success: true, note };
+  } catch (error) {
+    console.error('Error saving note:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('db:get-notes', async () => {
+  try {
+    return await Note.find().sort({ createdAt: -1 });
+  } catch (error) {
+    return [];
+  }
+});
+
+ipcMain.handle('db:create-task', async (event, title) => {
+  try {
+    const task = await Task.create({ title });
+    return { success: true, task };
+  } catch (error) {
+    console.error('Error creating task:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('db:get-tasks', async () => {
+  try {
+    return await Task.find().sort({ createdAt: -1 });
+  } catch (error) {
+    return [];
+  }
+});
+
+// Research Handlers
+ipcMain.handle('db:get-sources', async () => {
+  try {
+    return await Source.find().sort({ createdAt: -1 });
+  } catch (error) {
+    return [];
+  }
+});
+
+ipcMain.handle('db:get-citations', async () => {
+  try {
+    return await Citation.find().sort({ createdAt: -1 });
+  } catch (error) {
+    return [];
+  }
+});
+
+// AI & Voice Handler
+ipcMain.handle('ai:chat', async (event, prompt) => {
+  try {
+    console.log('Received AI Prompt:', prompt);
+    // prompt can be string or object { audio: base64 }
+    const aiResponse = await require('./src/services/ai').processPrompt(prompt);
+    console.log('AI Response:', aiResponse);
+
+    // Handle Side Effects (DB Operations)
+    if (aiResponse.type === 'CREATE_NOTE') {
+      const content = typeof aiResponse.payload === 'string' ? aiResponse.payload : aiResponse.payload.content;
+      await Note.create({ content });
+    } else if (aiResponse.type === 'CREATE_TASK') { // LEGACY support
+      const title = typeof aiResponse.payload === 'string' ? aiResponse.payload : aiResponse.payload.title;
+      await Task.create({ title });
+    } else if (aiResponse.type === 'SAVE_SOURCE') {
+      await Source.create(aiResponse.payload);
+    } else if (aiResponse.type === 'SAVE_CITATION') {
+      await Citation.create(aiResponse.payload);
+    }
+
+    // Generate Audio if there is a spoken response
+    let audioData = null;
+    if (aiResponse.response) {
+      audioData = await require('./src/services/voice').streamAudio(aiResponse.response);
+    }
+
+    return { ...aiResponse, audioData };
+
+  } catch (error) {
+    console.error('AI IPC Error:', error);
+    return { type: 'ANSWER', response: "Sorry, something went wrong.", audioData: null };
+  }
+});
+
+// New AI Handlers
+ipcMain.handle('ai:summarize', async (event, text) => {
+  return await require('./src/services/ai').summarizeContent(text);
+});
+
+ipcMain.handle('ai:chat-notes', async (event, { query, context }) => {
+  // If context is not provided, fetch all notes from DB
+  let finalContext = context;
+  if (!finalContext) {
+    try {
+      const notes = await Note.find().sort({ createdAt: -1 });
+      finalContext = notes.map(n => n.content).join('\n---\n');
+    } catch (e) {
+      console.error("Error fetching notes for context", e);
+      finalContext = "";
+    }
+  }
+  return await require('./src/services/ai').processChatWithContext(query, finalContext);
+});
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -94,93 +208,7 @@ app.whenReady().then(() => {
     return global.mainWindow?.isMaximized();
   });
 
-  // IPC: Database Handlers
-  ipcMain.handle('db:save-note', async (event, content) => {
-    try {
-      const note = await Note.create({ content });
-      return { success: true, note };
-    } catch (error) {
-      console.error('Error saving note:', error);
-      return { success: false, error: error.message };
-    }
-  });
 
-  ipcMain.handle('db:get-notes', async () => {
-    try {
-      return await Note.find().sort({ createdAt: -1 });
-    } catch (error) {
-      return [];
-    }
-  });
-
-  // AI & Voice Handler
-  ipcMain.handle('ai:chat', async (event, prompt) => {
-    try {
-      console.log('Received AI Prompt:', prompt);
-      // prompt can be string or object { audio: base64 }
-      const aiResponse = await require('./src/services/ai').processPrompt(prompt);
-      console.log('AI Response:', aiResponse);
-
-      // Handle Side Effects (DB Operations)
-      if (aiResponse.type === 'CREATE_NOTE') {
-        const content = typeof aiResponse.payload === 'string' ? aiResponse.payload : aiResponse.payload.content;
-        await Note.create({ content });
-      } else if (aiResponse.type === 'CREATE_TASK') {
-        const title = typeof aiResponse.payload === 'string' ? aiResponse.payload : aiResponse.payload.title;
-        await Task.create({ title });
-      }
-
-      // Generate Audio if there is a spoken response
-      let audioData = null;
-      if (aiResponse.response) {
-        audioData = await require('./src/services/voice').streamAudio(aiResponse.response);
-      }
-
-      return { ...aiResponse, audioData };
-
-    } catch (error) {
-      console.error('AI IPC Error:', error);
-      return { type: 'ANSWER', response: "Sorry, something went wrong.", audioData: null };
-    }
-  });
-
-  // New AI Handlers
-  ipcMain.handle('ai:summarize', async (event, text) => {
-    return await require('./src/services/ai').summarizeContent(text);
-  });
-
-  ipcMain.handle('ai:chat-notes', async (event, { query, context }) => {
-    // If context is not provided, fetch all notes from DB
-    let finalContext = context;
-    if (!finalContext) {
-      try {
-        const notes = await Note.find().sort({ createdAt: -1 });
-        finalContext = notes.map(n => n.content).join('\n---\n');
-      } catch (e) {
-        console.error("Error fetching notes for context", e);
-        finalContext = "";
-      }
-    }
-    return await require('./src/services/ai').processChatWithContext(query, finalContext);
-  });
-
-  ipcMain.handle('db:create-task', async (event, title) => {
-    try {
-      const task = await Task.create({ title });
-      return { success: true, task };
-    } catch (error) {
-      console.error('Error creating task:', error);
-      return { success: false, error: error.message };
-    }
-  });
-
-  ipcMain.handle('db:get-tasks', async () => {
-    try {
-      return await Task.find().sort({ createdAt: -1 });
-    } catch (error) {
-      return [];
-    }
-  });
 });
 
 app.on('window-all-closed', () => {

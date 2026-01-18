@@ -8,11 +8,13 @@ import remarkGfm from 'remark-gfm';
 export function SidePanelContent({
     mode,
     expansionMode = 'compact',
-    onToggleExpand
+    onToggleExpand,
+    onOpenTabs
 }: {
     mode: 'notes' | 'chat' | 'settings' | 'research',
     expansionMode?: 'compact' | 'half' | 'full',
-    onToggleExpand?: () => void
+    onToggleExpand?: () => void,
+    onOpenTabs?: (urls: string[]) => void
 }) {
     const api = useBrowserAPI();
     const [notes, setNotes] = useState<any[]>([]);
@@ -492,7 +494,7 @@ export function SidePanelContent({
     }
 
     if (mode === 'research') {
-        return <ResearchPanel expansionMode={expansionMode} onToggleExpand={onToggleExpand} />;
+        return <ResearchPanel expansionMode={expansionMode} onToggleExpand={onToggleExpand} onOpenTabs={onOpenTabs} />;
     }
 
     return <div className="text-white">Settings</div>;

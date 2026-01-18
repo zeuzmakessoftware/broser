@@ -37,7 +37,8 @@ ipcMain.handle('db:save-note', async (event, payload: any) => {
 
 ipcMain.handle('db:get-notes', async () => {
   try {
-    return await Note.find().sort({ createdAt: -1 });
+    const res = await Note.find().sort({ createdAt: -1 }).lean();
+    return JSON.parse(JSON.stringify(res));
   } catch (error) {
     return [];
   }
@@ -55,7 +56,8 @@ ipcMain.handle('db:create-task', async (event, title) => {
 
 ipcMain.handle('db:get-tasks', async () => {
   try {
-    return await Task.find().sort({ createdAt: -1 });
+    const res = await Task.find().sort({ createdAt: -1 }).lean();
+    return JSON.parse(JSON.stringify(res));
   } catch (error) {
     return [];
   }
@@ -64,7 +66,8 @@ ipcMain.handle('db:get-tasks', async () => {
 // Research Handlers
 ipcMain.handle('db:get-sources', async () => {
   try {
-    return await Source.find().sort({ createdAt: -1 });
+    const res = await Source.find().sort({ createdAt: -1 }).lean();
+    return JSON.parse(JSON.stringify(res));
   } catch (error) {
     return [];
   }
@@ -72,7 +75,8 @@ ipcMain.handle('db:get-sources', async () => {
 
 ipcMain.handle('db:get-citations', async () => {
   try {
-    return await Citation.find().sort({ createdAt: -1 });
+    const res = await Citation.find().sort({ createdAt: -1 }).lean();
+    return JSON.parse(JSON.stringify(res));
   } catch (error) {
     return [];
   }
@@ -81,7 +85,8 @@ ipcMain.handle('db:get-citations', async () => {
 // Workspace Handlers
 ipcMain.handle('db:get-workspaces', async () => {
   try {
-    return await Workspace.find().sort({ createdAt: -1 });
+    const res = await Workspace.find().sort({ createdAt: -1 }).lean();
+    return JSON.parse(JSON.stringify(res));
   } catch (error) {
     console.error('Error fetching workspaces:', error);
     return [];
@@ -91,7 +96,11 @@ ipcMain.handle('db:get-workspaces', async () => {
 ipcMain.handle('db:create-workspace', async (event, title) => {
   try {
     const workspace = await Workspace.create({ title });
-    return { success: true, workspace };
+    // Ensure we return a plain object with string ID
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const wsObj: any = workspace.toObject();
+    wsObj._id = wsObj._id.toString();
+    return { success: true, workspace: wsObj };
   } catch (error) {
     console.error('Error creating workspace:', error);
     return { success: false, error: (error as any).message };
@@ -100,12 +109,20 @@ ipcMain.handle('db:create-workspace', async (event, title) => {
 
 ipcMain.handle('db:get-workspace-data', async (event, workspaceId) => {
   try {
+    console.log(`[DEBUG] Fetching data for workspace: ${workspaceId}`);
     const [notes, sources, citations] = await Promise.all([
-      Note.find({ workspaceId }).sort({ createdAt: -1 }),
-      Source.find({ workspaceId }).sort({ createdAt: -1 }),
-      Citation.find({ workspaceId }).sort({ createdAt: -1 })
+      Note.find({ workspaceId }).sort({ createdAt: -1 }).lean(),
+      Source.find({ workspaceId }).sort({ createdAt: -1 }).lean(),
+      Citation.find({ workspaceId }).sort({ createdAt: -1 }).lean()
     ]);
-    return { notes, sources, citations };
+    
+    console.log(`[DEBUG] Found ${notes.length} notes, ${sources.length} sources, ${citations.length} citations`);
+    
+    return { 
+        notes: JSON.parse(JSON.stringify(notes)), 
+        sources: JSON.parse(JSON.stringify(sources)), 
+        citations: JSON.parse(JSON.stringify(citations)) 
+    };
   } catch (error) {
     console.error('Error fetching workspace data:', error);
     return { notes: [], sources: [], citations: [] };
@@ -113,24 +130,50 @@ ipcMain.handle('db:get-workspace-data', async (event, workspaceId) => {
 });
 
 // AI & Voice Handler
+// Helper to handle individual AI actions
+const handleAIAction = async (action: { type: string, payload: any }) => {
+    if (action.type === 'CREATE_NOTE') {
+        const content = typeof action.payload === 'string' ? action.payload : action.payload.content;
+        const workspaceId = typeof action.payload === 'object' ? action.payload.workspaceId : undefined;
+        await Note.create({ content, workspaceId });
+    } else if (action.type === 'CREATE_TASK') { // LEGACY support
+        const title = typeof action.payload === 'string' ? action.payload : action.payload.title;
+        await Task.create({ title });
+    } else if (action.type === 'SAVE_SOURCE') {
+        await Source.create(action.payload);
+    } else if (action.type === 'SAVE_CITATION') {
+        await Citation.create(action.payload);
+    } else if (action.type === 'RESEARCH') {
+        const { topic } = action.payload;
+        if (topic) {
+            const workspace = await Workspace.create({ title: topic });
+            // IMPORTANT: Return the new workspaceId in the payload so the frontend can switch
+            action.payload.workspaceId = workspace._id.toString();
+        }
+    }
+};
+
 ipcMain.handle('ai:chat', async (event, prompt) => {
+// ... (caller of handleAIAction)
+// note: replace_file_content with context needed. This chunk only targets handleAIAction
+// I will target the full file content for DB handlers next.
+// Wait, I should do them in one tool call if possible or separate.
+// I'll do handleAIAction first.
+
   try {
     console.log('Received AI Prompt:', prompt);
-    // prompt can be string or object { audio: base64 }
     const aiResponse = await aiService.processPrompt(prompt);
     console.log('AI Response:', aiResponse);
 
-    // Handle Side Effects (DB Operations)
-    if (aiResponse.type === 'CREATE_NOTE') {
-      const content = typeof aiResponse.payload === 'string' ? aiResponse.payload : aiResponse.payload.content;
-      await Note.create({ content });
-    } else if (aiResponse.type === 'CREATE_TASK') { // LEGACY support
-      const title = typeof aiResponse.payload === 'string' ? aiResponse.payload : aiResponse.payload.title;
-      await Task.create({ title });
-    } else if (aiResponse.type === 'SAVE_SOURCE') {
-      await Source.create(aiResponse.payload);
-    } else if (aiResponse.type === 'SAVE_CITATION') {
-      await Citation.create(aiResponse.payload);
+    // Handle Side Effects
+    if (aiResponse.type === 'MULTI_ACTION') {
+        if (aiResponse.payload && Array.isArray(aiResponse.payload.actions)) {
+            for (const action of aiResponse.payload.actions) {
+                await handleAIAction(action);
+            }
+        }
+    } else {
+        await handleAIAction(aiResponse);
     }
 
     // Generate Audio if there is a spoken response

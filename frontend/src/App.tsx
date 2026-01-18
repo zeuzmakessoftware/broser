@@ -159,23 +159,6 @@ function App() {
                 
                 Let's do (2) for production grade feel.
              */}
-          {tabs.map(tab => (
-            <webview
-              key={tab.id}
-              id={tab.active ? 'main-webview' : undefined} // Only active one gets the ID for simple controllers
-              src={tab.url}
-              style={{
-                width: '100%',
-                height: '100%',
-                display: tab.active ? 'flex' : 'none'
-              }}
-              // @ts-ignore
-              allowpopups="true"
-            // Add other electron webview attributes
-            ></webview>
-          ))}
-
-          {/* Side Panel Overlay or Split View */}
           {sidebarMode && (
             <div className={`absolute right-0 top-0 bottom-0 bg-[#1e1e1e] border-l border-white/10 shadow-2xl z-40 animate-in slide-in-from-right duration-200 transition-all ${expansionMode === 'compact' ? 'w-80' :
               expansionMode === 'half' ? 'w-1/2' : 'w-full'
@@ -185,6 +168,18 @@ function App() {
                   mode={sidebarMode}
                   expansionMode={expansionMode}
                   onToggleExpand={toggleExpand}
+                  onOpenTabs={(urls: string[]) => {
+                    const newTabs = urls.map((u, i) => ({
+                      id: Date.now().toString() + i,
+                      title: u,
+                      url: u.startsWith('http') ? u : `https://google.com/search?q=${encodeURIComponent(u)}`,
+                      active: i === urls.length - 1 // Activate last new tab
+                    }));
+                    setTabs(prev => {
+                      const inactivePrev = prev.map(t => ({ ...t, active: false }));
+                      return [...inactivePrev, ...newTabs];
+                    });
+                  }}
                 />
               </div>
             </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useBrowserAPI } from '../hooks/useBrowserAPI';
-import { Plus, Search, Maximize2, Minimize2 } from 'lucide-react';
+import { Plus, Search, Maximize2, Minimize2, BookOpen } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface Workspace {
@@ -16,15 +16,18 @@ interface ResearchData {
 
 export function ResearchPanel({
     expansionMode = 'compact',
-    onToggleExpand
+    onToggleExpand,
+    onOpenTabs
 }: {
     expansionMode?: 'compact' | 'half' | 'full',
-    onToggleExpand?: () => void
+    onToggleExpand?: () => void,
+    onOpenTabs?: (urls: string[]) => void
 }) {
     const api = useBrowserAPI();
     const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
     const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string>('');
     const [newTopic, setNewTopic] = useState('');
+    const [loading, setLoading] = useState(false); // Add loading state
     const [data, setData] = useState<ResearchData>({ sources: [], notes: [], citations: [] });
     const [tab, setTab] = useState<'sources' | 'notes' | 'citations'>('sources');
     const [filter, setFilter] = useState('');
@@ -52,7 +55,9 @@ export function ResearchPanel({
 
     const loadWorkspaceData = async (id: string) => {
         try {
+            console.log("Frontend loading workspace data for:", id);
             const res = await api.db.getWorkspaceData(id);
+            console.log("Frontend received workspace data:", res);
             if (res) setData(res);
         } catch (e) {
             console.error(e);
@@ -67,6 +72,43 @@ export function ResearchPanel({
             loadWorkspaces();
         } catch (e) {
             console.error(e);
+        }
+    };
+
+    const handleResearchAgent = async () => {
+        if (!newTopic.trim()) return;
+        setLoading(true);
+        try {
+            const prompt = `I want to research: ${newTopic}. Setup my workspace and find sources.`;
+            const res = await api.ai.chat(prompt); // Logic updated in main.ts/ai.ts to handle RESEARCH intent
+            
+            // If the AI returns a RESEARCH plan
+            if (res.type === 'RESEARCH') {
+                const { workspaceId, queries } = res.payload;
+                
+                // Refresh workspaces to see the new one
+                await loadWorkspaces();
+                
+                // Switch to new workspace
+                if (workspaceId) {
+                    setCurrentWorkspaceId(workspaceId);
+                }
+
+                // Open Tabs
+                if (queries && Array.isArray(queries) && onOpenTabs) {
+                    onOpenTabs(queries);
+                }
+
+                setNewTopic(''); // Clear input
+            } else {
+                 // Fallback if AI didn't catch specific RESEARCH intent but just answered
+                 console.log("AI Response:", res);
+                 // We could still create a workspace manually if we want
+            }
+        } catch (e) {
+            console.error("Research Agent Error", e);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -90,16 +132,6 @@ export function ResearchPanel({
 
             {/* Workspace Selector */}
             <div className="mb-4 space-y-2">
-                <select
-                    className="w-full bg-white/10 border border-white/10 rounded px-2 py-1 text-sm outline-none"
-                    value={currentWorkspaceId}
-                    onChange={e => setCurrentWorkspaceId(e.target.value)}
-                >
-                    <option value="">Select Topic...</option>
-                    {workspaces.map(ws => (
-                        <option key={ws._id} value={ws._id}>{ws.title}</option>
-                    ))}
-                </select>
                 <div className="flex gap-2">
                     <input
                         className="flex-1 bg-white/10 border border-white/10 rounded px-2 py-1 text-sm outline-none"
@@ -107,14 +139,70 @@ export function ResearchPanel({
                         value={newTopic}
                         onChange={e => setNewTopic(e.target.value)}
                     />
-                    <button onClick={handleCreateWorkspace} className="bg-blue-600 p-1 rounded hover:bg-blue-500">
-                        <Plus size={16} />
+                    <button 
+                        onClick={handleResearchAgent} 
+                        disabled={loading}
+                        className="bg-blue-600 p-1 rounded hover:bg-blue-500 disabled:opacity-50 animate-pulse" 
+                        title="AI Auto-Research"
+                    >
+                        {loading ? <span className="text-xs">...</span> : <Search size={16} />} 
                     </button>
-                </div>
+                    </div>
             </div>
 
             {currentWorkspaceId && (
                 <>
+                    <div className="flex gap-2 mb-2">
+                        <button
+                            onClick={async () => {
+                                if (!currentWorkspaceId) return;
+                                setLoading(true);
+                                try {
+                                    const webview = document.getElementById('main-webview') as any;
+                                    if (webview) {
+                                        const title = webview.getTitle();
+                                        const url = webview.getURL();
+                                        const text = await webview.executeJavaScript('document.body.innerText');
+                                        
+                                        const topic = workspaces.find(w => w._id === currentWorkspaceId)?.title || 'current topic';
+                                        
+                                        const prompt = `
+                                        Analyze this page for my research on: "${topic}".
+                                        Perform multiple actions using "MULTI_ACTION" type to structure your response:
+                                        
+                                        1. SAVE_SOURCE: Save the page metadata.
+                                           - URL: ${url}
+                                           - Title: ${title}
+                                           - WorkspaceId: ${currentWorkspaceId}
+                                           - Summary: A brief summary of the page content.
+                                           - Tags: ['supporting' | 'opposing' | 'neutral', 'topic tags...']
+                                           
+                                        2. SAVE_CITATION: Extract 3 key quotes relevant to "${topic}".
+                                           - Each citation should have "sourceUrl": "${url}", "content": "The quote...", "workspaceId": "${currentWorkspaceId}"
+                                           
+                                        3. CREATE_NOTE: Write a brief analysis note about how this source relates to "${topic}".
+                                           - "content": "Analysis...", "workspaceId": "${currentWorkspaceId}"
+
+                                        Page Content:
+                                        ${text.substring(0, 15000)}
+                                        `;
+                                        
+                                        await api.ai.chat(prompt);
+                                        await loadWorkspaceData(currentWorkspaceId);
+                                    }
+                                } catch (e) {
+                                    console.error("Analyze Error", e);
+                                } finally {
+                                    setLoading(false);
+                                }
+                            }}
+                            disabled={loading}
+                            className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs py-2 rounded flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                        >
+                             {loading ? "Analyzing..." : <><BookOpen size={14} /> Analyze This Page</>}
+                        </button>
+                    </div>
+
                     <div className="relative mb-2">
                         <Search size={14} className="absolute left-2 top-2 text-gray-400" />
                         <input

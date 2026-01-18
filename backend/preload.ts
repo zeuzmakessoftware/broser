@@ -17,7 +17,9 @@ const BROWSER_API = {
     summarize: (content: string, url?: string) => ipcRenderer.invoke('ai:summarize', { content, url }),
     extractIntent: (voiceCommand: string) => ipcRenderer.invoke('ai:extract-intent', { voiceCommand }),
     chatNotes: (query: string, context?: string) => ipcRenderer.invoke('ai:chat-notes', { query, context }),
-    generateStudyMaterials: (content: string) => ipcRenderer.invoke('ai:generate-study-materials', { content })
+    generateStudyMaterials: (content: string) => ipcRenderer.invoke('ai:generate-study-materials', { content }),
+    generateMoreQuestions: (content: string, existingQuestions: any[]) => ipcRenderer.invoke('ai:generate-more-quiz', { content, existingQuestions }),
+    analyzeSource: (content: string, topic: string) => ipcRenderer.invoke('ai:analyze-source', { content, topic })
   },
 
   // Voice Services

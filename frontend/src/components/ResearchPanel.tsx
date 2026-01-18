@@ -14,13 +14,13 @@ interface ResearchData {
     citations: any[];
 }
 
-export function ResearchPanel() {
+export function ResearchPanel({ isExpanded: _isExpanded }: { isExpanded?: boolean }) {
     const api = useBrowserAPI();
     const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
     const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string>('');
     const [newTopic, setNewTopic] = useState('');
     const [data, setData] = useState<ResearchData>({ sources: [], notes: [], citations: [] });
-    const [tab, setTab] = useState<'sources'|'notes'|'citations'>('sources');
+    const [tab, setTab] = useState<'sources' | 'notes' | 'citations'>('sources');
     const [filter, setFilter] = useState('');
 
     useEffect(() => {
@@ -46,8 +46,8 @@ export function ResearchPanel() {
 
     const loadWorkspaceData = async (id: string) => {
         try {
-             const res = await api.db.getWorkspaceData(id);
-             if (res) setData(res);
+            const res = await api.db.getWorkspaceData(id);
+            if (res) setData(res);
         } catch (e) {
             console.error(e);
         }
@@ -72,10 +72,10 @@ export function ResearchPanel() {
     return (
         <div className="flex flex-col h-full text-white">
             <h2 className="text-lg font-bold mb-4">Research</h2>
-            
+
             {/* Workspace Selector */}
             <div className="mb-4 space-y-2">
-                <select 
+                <select
                     className="w-full bg-white/10 border border-white/10 rounded px-2 py-1 text-sm outline-none"
                     value={currentWorkspaceId}
                     onChange={e => setCurrentWorkspaceId(e.target.value)}
@@ -86,7 +86,7 @@ export function ResearchPanel() {
                     ))}
                 </select>
                 <div className="flex gap-2">
-                    <input 
+                    <input
                         className="flex-1 bg-white/10 border border-white/10 rounded px-2 py-1 text-sm outline-none"
                         placeholder="New Topic..."
                         value={newTopic}
@@ -101,18 +101,18 @@ export function ResearchPanel() {
             {currentWorkspaceId && (
                 <>
                     <div className="relative mb-2">
-                         <Search size={14} className="absolute left-2 top-2 text-gray-400" />
-                         <input 
+                        <Search size={14} className="absolute left-2 top-2 text-gray-400" />
+                        <input
                             className="w-full bg-white/5 border border-white/10 rounded pl-8 py-1 text-sm outline-none"
                             placeholder="Search..."
                             value={filter}
                             onChange={e => setFilter(e.target.value)}
-                         />
+                        />
                     </div>
 
                     <div className="flex border-b border-white/10 mb-2">
                         {['sources', 'notes', 'citations'].map(t => (
-                            <button 
+                            <button
                                 key={t}
                                 onClick={() => setTab(t as any)}
                                 className={clsx(
@@ -136,14 +136,14 @@ export function ResearchPanel() {
                                 )}
                                 {tab === 'notes' && <div>{item.content}</div>}
                                 {tab === 'citations' && (
-                                     <>
+                                    <>
                                         <div className="italic mb-1">"{item.content}"</div>
                                         <div className="text-gray-500">{item.sourceUrl}</div>
-                                     </>
+                                    </>
                                 )}
                             </div>
                         ))}
-                         {filteredList.length === 0 && <div className="text-gray-500 text-center text-xs mt-4">No items found</div>}
+                        {filteredList.length === 0 && <div className="text-gray-500 text-center text-xs mt-4">No items found</div>}
                     </div>
                 </>
             )}

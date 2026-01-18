@@ -181,5 +181,81 @@ export const generateStudyMaterials = async (text: string) => {
     }
 }
 
+export const generateMoreQuizQuestions = async (text: string, existingQuestions: any[]) => {
+    try {
+        const existingQuestionsText = existingQuestions.map((q: any) => q.question).join('\n');
 
+        const prompt = `
+        Analyze the following text and generate 5 NEW quiz questions that are different from the existing questions.
+        
+        Existing Questions:
+        ${existingQuestionsText}
 
+        Return a valid JSON object with the following structure:
+        {
+            "quiz": [
+                {
+                    "question": "Question text",
+                    "options": ["A", "B", "C", "D"],
+                    "correctAnswer": "The correct option text"
+                }
+            ]
+        }
+        
+        Text to analyze:
+        ${text.substring(0, 15000)}
+        `;
+
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+
+        let cleanText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const firstBrace = cleanText.indexOf('{');
+        const lastBrace = cleanText.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1) {
+            cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+        }
+
+        return JSON.parse(cleanText);
+
+    } catch (error) {
+        console.error('Error generating more quiz questions:', error);
+        return {
+            quiz: []
+        };
+    }
+}
+
+export const analyzeSource = async (text: string, topic: string) => {
+    try {
+        const prompt = `
+        Analyze the following text in the context of the research topic: "${topic}".
+        Determine if the source is SUPPORTING, OPPOSING, or NEUTRAL regarding the topic.
+        Also provide a very brief 1-sentence summary.
+        
+        Return JSON:
+        {
+            "tag": "supporting" | "opposing" | "neutral",
+            "summary": "Brief summary"
+        }
+
+        Text:
+        ${text.substring(0, 10000)}
+        `;
+
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+
+        let cleanText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const firstBrace = cleanText.indexOf('{');
+        const lastBrace = cleanText.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1) {
+            cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+        }
+
+        return JSON.parse(cleanText);
+    } catch (error) {
+        console.error('Error analyzing source:', error);
+        return { tag: 'neutral', summary: 'Could not analyze.' };
+    }
+}

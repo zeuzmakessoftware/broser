@@ -171,6 +171,13 @@ ipcMain.handle('ai:generate-study-materials', async (event, { content }) => {
   return await aiService.generateStudyMaterials(content);
 });
 
+ipcMain.handle('ai:generate-more-quiz', async (event, { content, existingQuestions }) => {
+  return await aiService.generateMoreQuizQuestions(content, existingQuestions);
+});
+
+ipcMain.handle('ai:analyze-source', async (event, { content, topic }) => {
+  return await aiService.analyzeSource(content, topic);
+});
 function createWindow() {
   const win = new BrowserWindow({
     width: 1400,

@@ -230,9 +230,33 @@ export function SidePanelContent({ mode }: { mode: 'notes' | 'chat' | 'settings'
                             ))}
                             <button
                                 onClick={() => setShowQuizResult(!showQuizResult)}
-                                className="w-full bg-purple-600 p-2 rounded font-bold hover:bg-purple-700 transition-colors"
+                                className="w-full bg-purple-600 p-2 rounded font-bold hover:bg-purple-700 transition-colors mb-2"
                             >
                                 {showQuizResult ? "Hide Results" : "Check Answers"}
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    setLoading(true);
+                                    const webview = document.getElementById('main-webview') as any;
+                                    if (webview) {
+                                        try {
+                                            const text = await webview.executeJavaScript('document.body.innerText');
+                                            const res = await api.ai.generateMoreQuestions(text, studyData.quiz);
+                                            if (res.quiz && res.quiz.length > 0) {
+                                                setStudyData((prev: any) => ({
+                                                    ...prev,
+                                                    quiz: [...prev.quiz, ...res.quiz]
+                                                }));
+                                            }
+                                        } catch (e) {
+                                            console.error(e);
+                                        }
+                                    }
+                                    setLoading(false);
+                                }}
+                                className="w-full bg-white/10 p-2 rounded font-bold hover:bg-white/20 transition-colors"
+                            >
+                                Generate More Questions
                             </button>
                         </div>
                     )}

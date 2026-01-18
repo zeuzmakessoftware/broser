@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useBrowserAPI } from '../hooks/useBrowserAPI';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Maximize2, Minimize2 } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface Workspace {
@@ -14,7 +14,13 @@ interface ResearchData {
     citations: any[];
 }
 
-export function ResearchPanel({ isExpanded: _isExpanded }: { isExpanded?: boolean }) {
+export function ResearchPanel({
+    expansionMode = 'compact',
+    onToggleExpand
+}: {
+    expansionMode?: 'compact' | 'half' | 'full',
+    onToggleExpand?: () => void
+}) {
     const api = useBrowserAPI();
     const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
     const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string>('');
@@ -71,7 +77,16 @@ export function ResearchPanel({ isExpanded: _isExpanded }: { isExpanded?: boolea
 
     return (
         <div className="flex flex-col h-full text-white">
-            <h2 className="text-lg font-bold mb-4">Research</h2>
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold">Research</h2>
+                <button
+                    onClick={onToggleExpand}
+                    className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
+                    title={expansionMode === 'full' ? "Contract" : "Expand"}
+                >
+                    {expansionMode === 'full' ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                </button>
+            </div>
 
             {/* Workspace Selector */}
             <div className="mb-4 space-y-2">

@@ -1,9 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useBrowserAPI } from '../hooks/useBrowserAPI';
 import { ResearchPanel } from './ResearchPanel';
-import { Upload, Globe, BookOpen, School, Brain, Sparkles, Copy, Check } from 'lucide-react';
+import { Upload, Globe, BookOpen, School, Brain, Sparkles, Copy, Check, Youtube, Maximize2, Minimize2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
-export function SidePanelContent({ mode }: { mode: 'notes' | 'chat' | 'settings' | 'research' }) {
+export function SidePanelContent({
+    mode,
+    expansionMode = 'compact',
+    onToggleExpand
+}: {
+    mode: 'notes' | 'chat' | 'settings' | 'research',
+    expansionMode?: 'compact' | 'half' | 'full',
+    onToggleExpand?: () => void
+}) {
     const api = useBrowserAPI();
     const [notes, setNotes] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -21,6 +31,17 @@ export function SidePanelContent({ mode }: { mode: 'notes' | 'chat' | 'settings'
     const [showQuizResult, setShowQuizResult] = useState(false);
     const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(() => {
+        if (mode === 'chat') {
+            scrollToBottom();
+        }
+    }, [messages, mode]);
 
     useEffect(() => {
         if (mode === 'notes') {
@@ -82,6 +103,34 @@ export function SidePanelContent({ mode }: { mode: 'notes' | 'chat' | 'settings'
         }
     };
 
+    const handleSummarizeVideo = async () => {
+        const webview = document.getElementById('main-webview') as any;
+        if (!webview) return;
+
+        setMessages(prev => [...prev, { role: 'user', content: "Summarize this video" }]);
+        try {
+            const url = await webview.getURL();
+            if (url.includes('youtube.com/watch')) {
+                const info = await webview.executeJavaScript(`
+                    (() => {
+                        const title = document.querySelector('h1.ytd-video-primary-info-renderer')?.innerText || document.title;
+                        const desc = document.querySelector('#description-inline-expander')?.innerText || "";
+                        return { title, desc };
+                    })()
+                `);
+
+                const prompt = `Summarize this video: ${info.title}\n\nDescription: ${info.desc}`;
+                const res = await api.ai.summarize(prompt);
+                const summary = (res as any).summary || res;
+                setMessages(prev => [...prev, { role: 'assistant', content: summary, isSummary: true }]);
+            } else {
+                setMessages(prev => [...prev, { role: 'assistant', content: "I can only summarize YouTube videos for now. Please open a YouTube video page." }]);
+            }
+        } catch (err) {
+            setMessages(prev => [...prev, { role: 'assistant', content: "Failed to access video content." }]);
+        }
+    };
+
     const sendMessage = async () => {
         if (!input.trim()) return;
         const text = input;
@@ -136,22 +185,33 @@ export function SidePanelContent({ mode }: { mode: 'notes' | 'chat' | 'settings'
     };
 
     if (mode === 'notes') {
+        const ExpandIcon = expansionMode === 'full' ? Minimize2 : expansionMode === 'half' ? Maximize2 : Maximize2;
+
         return (
             <div className="flex flex-col h-full text-white">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-lg font-bold">Notes & Study</h2>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
                         <button
-                            onClick={handleGenerateStudyMaterials}
-                            className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-2 py-1 rounded flex items-center gap-1 transition-colors"
+                            onClick={onToggleExpand}
+                            className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
+                            title={expansionMode === 'full' ? "Contract" : "Expand"}
                         >
-                            <School size={12} />
-                            Study This Page
+                            <ExpandIcon size={18} />
                         </button>
-                        <label className="bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white cursor-pointer px-2 py-1 rounded flex items-center gap-1 transition-colors" title="Upload Study Material">
-                            <input type="file" className="hidden" accept=".txt,.md,.json" onChange={handleStudyFileUpload} />
-                            <Upload size={12} />
-                        </label>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleGenerateStudyMaterials}
+                                className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-2 py-1 rounded flex items-center gap-1 transition-colors"
+                            >
+                                <School size={12} />
+                                Study This Page
+                            </button>
+                            <label className="bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white cursor-pointer px-2 py-1 rounded flex items-center gap-1 transition-colors" title="Upload Study Material">
+                                <input type="file" className="hidden" accept=".txt,.md,.json" onChange={handleStudyFileUpload} />
+                                <Upload size={12} />
+                            </label>
+                        </div>
                     </div>
                 </div>
 
@@ -277,7 +337,7 @@ export function SidePanelContent({ mode }: { mode: 'notes' | 'chat' | 'settings'
                                     </div>
 
                                     {/* Back */}
-                                    <div className={`absolute w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 flex flex-col items-center justify-center text-center backface-hidden rotate-y-180 shadow-xl border border-white/10 ${!isFlipped ? 'hidden' : ''}`} style={{ transform: 'rotateY(180deg)' }}>
+                                    <div className={`absolute w - full h - full bg - gradient - to - br from - gray - 800 to - gray - 900 rounded - xl p - 6 flex flex - col items - center justify - center text - center backface - hidden rotate - y - 180 shadow - xl border border - white / 10 ${!isFlipped ? 'hidden' : ''} `} style={{ transform: 'rotateY(180deg)' }}>
                                         <h3 className="text-sm uppercase tracking-widest text-green-300 mb-4">Definition</h3>
                                         <p className="text-lg">{studyData.flashcards[currentFlashcardIndex].back}</p>
                                         <p className="absolute bottom-4 text-xs text-gray-400">Click to flip back</p>
@@ -337,20 +397,29 @@ export function SidePanelContent({ mode }: { mode: 'notes' | 'chat' | 'settings'
                         </div>
                     )}
                 </div>
-            </div >
+            </div>
         );
     }
 
     if (mode === 'chat') {
+        const ExpandIcon = expansionMode === 'full' ? Minimize2 : expansionMode === 'half' ? Maximize2 : Maximize2;
+
         return (
             <div className="flex flex-col h-full text-white">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-lg font-bold">AI Assistant</h2>
+                    <button
+                        onClick={onToggleExpand}
+                        className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
+                        title={expansionMode === 'full' ? "Contract" : "Expand"}
+                    >
+                        <ExpandIcon size={18} />
+                    </button>
                 </div>
 
                 {/* Chat Interface */}
-                <div className="flex-1 flex flex-col h-full">
-                    <div className="flex-1 overflow-y-auto space-y-3 mb-2 p-2 bg-black/20 rounded">
+                <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                    <div className="flex-1 overflow-y-auto space-y-3 mb-2 p-2 bg-black/20 rounded custom-scrollbar">
                         {messages.length === 0 && <div className="text-gray-500 text-xs text-center">Ask questions about your notes or upload files...</div>}
                         {messages.map((m, i) => (
                             <div key={i} className={m.role === 'user' ? "text-right" : "text-left"}>
@@ -374,48 +443,56 @@ export function SidePanelContent({ mode }: { mode: 'notes' | 'chat' | 'settings'
                                                 </button>
                                             </div>
                                             <div className="p-3">
-                                                <div className="text-sm leading-relaxed text-gray-100 whitespace-pre-wrap">
-                                                    {(m as any).content}
+                                                <div className="text-sm leading-relaxed text-gray-100 markdown-content">
+                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                        {(m as any).content}
+                                                    </ReactMarkdown>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className={`inline-block p-2 rounded-lg text-sm max-w-[90%] whitespace-pre-wrap ${m.role === 'user' ? 'bg-blue-600' : 'bg-gray-700'}`}>
-                                        {m.content}
+                                    <div className={`inline-block p-2 rounded-lg text-sm max-w-[90%] markdown-content ${m.role === 'user' ? 'bg-blue-600' : 'bg-gray-700'}`}>
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                            {m.content}
+                                        </ReactMarkdown>
                                     </div>
                                 )}
                             </div>
                         ))}
+                        <div ref={messagesEndRef} />
                     </div>
+                </div>
 
-                    <div className="flex gap-2 mb-2">
-                        <label className="cursor-pointer bg-white/10 p-1.5 rounded hover:bg-white/20 text-gray-400 hover:text-white transition-colors" title="Upload File">
-                            <input type="file" className="hidden" onChange={handleFileUpload} />
-                            <Upload size={16} />
-                        </label>
-                        <button onClick={handleSummarizePage} className="bg-white/10 p-1.5 rounded hover:bg-white/20 text-gray-400 hover:text-white transition-colors" title="Summarize Page">
-                            <Globe size={16} />
-                        </button>
-                    </div>
+                <div className="flex gap-2 mb-2">
+                    <label className="cursor-pointer bg-white/10 p-1.5 rounded hover:bg-white/20 text-gray-400 hover:text-white transition-colors" title="Upload File">
+                        <input type="file" className="hidden" onChange={handleFileUpload} />
+                        <Upload size={16} />
+                    </label>
+                    <button onClick={handleSummarizePage} className="bg-white/10 p-1.5 rounded hover:bg-white/20 text-gray-400 hover:text-white transition-colors" title="Summarize Page">
+                        <Globe size={16} />
+                    </button>
+                    <button onClick={handleSummarizeVideo} className="bg-white/10 p-1.5 rounded hover:bg-white/20 text-gray-400 hover:text-white transition-colors" title="Summarize Video">
+                        <Youtube size={16} />
+                    </button>
+                </div>
 
-                    <div className="flex gap-2">
-                        <input
-                            className="flex-1 bg-white/10 border border-white/10 rounded px-2 py-1 text-sm focus:outline-none"
-                            value={input}
-                            onChange={e => setInput(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                            placeholder="Ask AI..."
-                        />
-                        <button onClick={sendMessage} className="bg-blue-600 px-3 py-1 rounded text-sm">Send</button>
-                    </div>
+                <div className="flex gap-2">
+                    <input
+                        className="flex-1 bg-white/10 border border-white/10 rounded px-2 py-1 text-sm focus:outline-none"
+                        value={input}
+                        onChange={e => setInput(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && sendMessage()}
+                        placeholder="Ask AI..."
+                    />
+                    <button onClick={sendMessage} className="bg-blue-600 px-3 py-1 rounded text-sm">Send</button>
                 </div>
             </div>
         );
     }
 
     if (mode === 'research') {
-        return <ResearchPanel />;
+        return <ResearchPanel expansionMode={expansionMode} onToggleExpand={onToggleExpand} />;
     }
 
     return <div className="text-white">Settings</div>;

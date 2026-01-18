@@ -97,16 +97,36 @@ function App() {
   };
 
   const handleNavigate = (url: string) => {
-    // Simple URL normalization
-    if (!url.startsWith('http') && !url.includes('://')) {
-      url = 'https://' + url; // Basic fallback, in real app usage search engine
+    if (!url) return;
+
+    // Normalize input
+    let finalUrl = url.trim();
+
+    // Quick check if it's a URL
+    const isUrl = finalUrl.includes('.') && !finalUrl.includes(' ');
+    const hasProtocol = finalUrl.includes('://');
+
+    if (!hasProtocol) {
+      if (isUrl) {
+        finalUrl = 'https://' + finalUrl;
+      } else {
+        // Default to Google search
+        finalUrl = `https://www.google.com/search?q=${encodeURIComponent(finalUrl)}`;
+      }
     }
-    setTabs(prev => prev.map(t => t.active ? { ...t, url: url, title: url } : t));
+
+    console.log(`[Navigation] Navigating to: ${finalUrl}`);
+    setTabs(prev => prev.map(t => t.active ? { ...t, url: finalUrl, title: finalUrl } : t));
 
     // Electron Webview update logic
+    // We update via src prop in React, but for existing webviews, loadURL is faster/more reliable
     const webview = document.getElementById('main-webview') as any;
-    if (webview) {
-      webview.loadURL(url);
+    if (webview && !finalUrl.startsWith('noteva://')) {
+      try {
+        webview.loadURL(finalUrl);
+      } catch (e) {
+        console.error("Navigation error", e);
+      }
     }
   };
 
@@ -156,11 +176,11 @@ function App() {
           onReload={() => { (document.getElementById('main-webview') as any)?.reload() }}
         />
 
-        <div className="flex-1 relative bg-white">
+        <div className="flex-1 relative bg-black overflow-hidden">
           {tabs.map(tab => (
-            <div key={tab.id} className={`w-full h-full ${tab.active ? 'flex' : 'hidden'}`}>
+            <div key={tab.id} className={`absolute inset-0 ${tab.active ? 'block' : 'hidden'}`}>
               {tab.url === 'noteva://start' ? (
-                <StartPage onNavigate={handleNavigate} />
+                <StartPage onNavigate={handleNavigate} onNewTab={handleNewTab} />
               ) : (
                 <webview
                   id={tab.active ? 'main-webview' : undefined}

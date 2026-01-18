@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Search, Compass, BookOpen, GraduationCap, Clock, Settings } from 'lucide-react';
+import { Search, Compass, BookOpen, GraduationCap, Mic } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface StartPageProps {
   onNavigate: (url: string) => void;
   onNewTab: () => void;
+  onVoiceClick: () => void;
 }
 
-export function StartPage({ onNavigate, onNewTab }: StartPageProps) {
+export function StartPage({ onNavigate, onNewTab, onVoiceClick }: StartPageProps) {
   const [query, setQuery] = useState('');
 
   const handleSearch = (e: React.FormEvent) => {
@@ -26,7 +27,7 @@ export function StartPage({ onNavigate, onNewTab }: StartPageProps) {
     { icon: Compass, label: 'Explore', url: 'new-tab' },
     { icon: BookOpen, label: 'Docs', url: 'https://docs.google.com' },
     { icon: GraduationCap, label: 'Canvas', url: 'https://canvas.instructure.com' },
-    { icon: Settings, label: 'Settings', url: 'noteva://settings' },
+    { icon: Mic, label: 'Voice', url: 'noteva://voice' },
   ];
 
   const container = {
@@ -99,6 +100,8 @@ export function StartPage({ onNavigate, onNewTab }: StartPageProps) {
               onClick={() => {
                 if (link.url === 'new-tab') {
                   onNewTab();
+                } else if (link.url === 'noteva://voice') {
+                  onVoiceClick();
                 } else if (link.url.startsWith('noteva')) {
                   console.log('Internal link');
                 } else {

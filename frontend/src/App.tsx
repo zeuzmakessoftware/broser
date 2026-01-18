@@ -188,7 +188,7 @@ function App() {
           {tabs.map(tab => (
             <div key={tab.id} className={`absolute inset-0 ${tab.active ? 'block' : 'hidden'}`}>
               {tab.url === 'noteva://start' ? (
-                <StartPage onNavigate={handleNavigate} onNewTab={handleNewTab} />
+                <StartPage onNavigate={handleNavigate} onNewTab={handleNewTab} onVoiceClick={toggleListening} />
               ) : (
                 <webview
                   id={tab.active ? 'main-webview' : undefined}

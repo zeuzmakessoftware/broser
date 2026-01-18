@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import './index.css';
 import { Sidebar } from './components/Sidebar';
 import { TabBar } from './components/TabBar';
@@ -27,7 +28,7 @@ function App() {
   const [tabs, setTabs] = useState<Tab[]>([
     { id: '1', title: 'Start Page', url: 'noteva://start', active: true }
   ]);
-  const [sidebarMode, setSidebarMode] = useState<'notes' | 'chat' | 'settings' | 'research' | null>(null);
+  const [sidebarMode, setSidebarMode] = useState<'notes' | 'chat' | 'settings' | 'research' | 'history' | null>(null);
   const [expansionMode, setExpansionMode] = useState<'compact' | 'half' | 'full'>('compact');
   const [aiResponseToProcess, setAiResponseToProcess] = useState<any>(null);
   const [researchContext, setResearchContext] = useState<{ topic?: string; workspaceId?: string; queries?: string[] } | null>(null);
@@ -134,7 +135,7 @@ function App() {
     }
   };
 
-  const toggleSidebar = (mode: 'notes' | 'chat' | 'settings' | 'research') => {
+  const toggleSidebar = (mode: 'notes' | 'chat' | 'settings' | 'research' | 'history') => {
     setSidebarMode(curr => curr === mode ? null : mode);
     if (!sidebarMode) setExpansionMode('compact');
   };
@@ -199,37 +200,48 @@ function App() {
               )}
             </div>
           ))}
-          {sidebarMode && (
-            <div className={`absolute right-4 top-1/2 -translate-y-1/2 h-[80vh] bg-[#1e1e1e] border border-white/10 shadow-2xl z-40 animate-in slide-in-from-right duration-200 transition-all rounded-xl overflow-hidden ${expansionMode === 'compact' ? 'w-80' :
-              expansionMode === 'half' ? 'w-1/2' : 'w-full'
-              }`}>
-              <div className="flex flex-col h-full p-4">
-                <SidePanelContent
-                  mode={sidebarMode}
-                  expansionMode={expansionMode}
-                  onToggleExpand={toggleExpand}
-                  onClose={() => setSidebarMode(null)}
-                  pendingAIResponse={aiResponseToProcess}
-                  onResponseProcessed={() => setAiResponseToProcess(null)}
-                  researchContext={researchContext}
-                  onSetResearchContext={setResearchContext}
-                  onSwitchMode={(mode: any) => setSidebarMode(mode)}
-                  onOpenTabs={(urls: string[]) => {
-                    const newTabs = urls.map((u, i) => ({
-                      id: Date.now().toString() + i,
-                      title: u,
-                      url: u.startsWith('http') ? u : `https://google.com/search?q=${encodeURIComponent(u)}`,
-                      active: i === urls.length - 1 // Activate last new tab
-                    }));
-                    setTabs(prev => {
-                      const inactivePrev = prev.map(t => ({ ...t, active: false }));
-                      return [...inactivePrev, ...newTabs];
-                    });
-                  }}
-                />
-              </div>
-            </div>
-          )}
+          <AnimatePresence>
+            {sidebarMode && (
+              <motion.div
+                key="sidepanel"
+                initial={{ x: 400, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: 400, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className={`absolute right-4 top-1/2 -translate-y-1/2 h-[80vh] bg-[#1e1e1e] border border-white/10 shadow-2xl z-40 rounded-xl overflow-hidden ${
+                  expansionMode === 'compact' ? 'w-80' :
+                  expansionMode === 'half' ? 'w-1/2' : 'w-full'
+                }`}
+              >
+                <div className="flex flex-col h-full p-4">
+                  <SidePanelContent
+                    mode={sidebarMode}
+                    expansionMode={expansionMode}
+                    onToggleExpand={toggleExpand}
+                    onClose={() => setSidebarMode(null)}
+                    onNavigate={handleNavigate}
+                    pendingAIResponse={aiResponseToProcess}
+                    onResponseProcessed={() => setAiResponseToProcess(null)}
+                    researchContext={researchContext}
+                    onSetResearchContext={setResearchContext}
+                    onSwitchMode={(mode) => setSidebarMode(mode)}
+                    onOpenTabs={(urls: string[]) => {
+                      const newTabs = urls.map((u, i) => ({
+                        id: Date.now().toString() + i,
+                        title: u,
+                        url: u.startsWith('http') ? u : `https://google.com/search?q=${encodeURIComponent(u)}`,
+                        active: i === urls.length - 1 // Activate last new tab
+                      }));
+                      setTabs(prev => {
+                        const inactivePrev = prev.map(t => ({ ...t, active: false }));
+                        return [...inactivePrev, ...newTabs];
+                      });
+                    }}
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

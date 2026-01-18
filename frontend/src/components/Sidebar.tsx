@@ -1,10 +1,11 @@
-import { BookOpen, MessageSquare, Settings, Mic, Notebook } from 'lucide-react';
+import { BookOpen, MessageSquare, Settings, Mic, Notebook, Clock } from 'lucide-react';
 import { clsx } from 'clsx';
+import { motion } from 'framer-motion';
 
 interface SidebarProps {
   isOpen: boolean;
-  activeMode: 'notes' | 'chat' | 'settings' | 'research' | null;
-  onToggle: (mode: 'notes' | 'chat' | 'settings' | 'research') => void;
+  activeMode: 'notes' | 'chat' | 'settings' | 'research' | 'history' | null;
+  onToggle: (mode: 'notes' | 'chat' | 'settings' | 'research' | 'history') => void;
   onVoiceClick: () => void;
   isListening?: boolean;
 }
@@ -18,7 +19,9 @@ export function Sidebar({ isOpen: _isOpen, activeMode, onToggle, onVoiceClick, i
 
       <img src="/swagscg.svg" alt="Logo" className="w-14 h-14 mb-2 no-drag select-none rounded-xl" />
 
-      <button
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.9 }}
         onClick={() => onToggle('research')}
         className={clsx(
           "p-2 rounded-lg transition-all duration-200 group relative no-drag",
@@ -27,10 +30,18 @@ export function Sidebar({ isOpen: _isOpen, activeMode, onToggle, onVoiceClick, i
         title="Research"
       >
         <BookOpen size={20} />
-        {activeMode === 'research' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-green-500 rounded-r-full" />}
-      </button>
+        {activeMode === 'research' && (
+          <motion.div
+            layoutId="sidebar-active"
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-green-500 rounded-r-full"
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          />
+        )}
+      </motion.button>
 
-      <button
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.9 }}
         onClick={() => onToggle('notes')}
         className={clsx(
           "p-2 rounded-lg transition-all duration-200 group relative no-drag",
@@ -39,10 +50,18 @@ export function Sidebar({ isOpen: _isOpen, activeMode, onToggle, onVoiceClick, i
         title="Notes"
       >
         <Notebook size={20} />
-        {activeMode === 'notes' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-blue-500 rounded-r-full" />}
-      </button>
+        {activeMode === 'notes' && (
+          <motion.div
+            layoutId="sidebar-active"
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-blue-500 rounded-r-full"
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          />
+        )}
+      </motion.button>
 
-      <button
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.9 }}
         onClick={() => onToggle('chat')}
         className={clsx(
           "p-2 rounded-lg transition-all duration-200 group relative no-drag",
@@ -51,12 +70,38 @@ export function Sidebar({ isOpen: _isOpen, activeMode, onToggle, onVoiceClick, i
         title="AI Chat"
       >
         <MessageSquare size={20} />
-        {activeMode === 'chat' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-purple-500 rounded-r-full" />}
-      </button>
+        {activeMode === 'chat' && (
+          <motion.div
+            layoutId="sidebar-active"
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-purple-500 rounded-r-full"
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          />
+        )}
+      </motion.button>
 
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => onToggle('history')}
+        className={clsx(
+          "p-2 rounded-lg transition-all duration-200 group relative no-drag",
+          activeMode === 'history' ? "bg-white/10 text-white" : "text-gray-400 hover:text-white hover:bg-white/5"
+        )}
+        title="History"
+      >
+        <Clock size={20} />
+        {activeMode === 'history' && (
+          <motion.div
+            layoutId="sidebar-active"
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-yellow-500 rounded-r-full"
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          />
+        )}
+      </motion.button>
 
-
-      <button
+      <motion.button
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
         onClick={onVoiceClick}
         className={clsx(
           "p-2 rounded-full transition-all duration-300 mt-auto mb-4 border border-transparent hover:border-white/10 no-drag",
@@ -65,9 +110,11 @@ export function Sidebar({ isOpen: _isOpen, activeMode, onToggle, onVoiceClick, i
         title="Voice Assistant"
       >
         <Mic size={20} />
-      </button>
+      </motion.button>
 
-      <button
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.9 }}
         onClick={() => onToggle('settings')}
         className={clsx(
           "p-2 rounded-lg transition-all duration-200 no-drag",
@@ -76,7 +123,8 @@ export function Sidebar({ isOpen: _isOpen, activeMode, onToggle, onVoiceClick, i
         title="Settings"
       >
         <Settings size={20} />
-      </button>
+      </motion.button>
     </div>
   );
 }
+

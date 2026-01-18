@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useBrowserAPI } from '../hooks/useBrowserAPI';
 import { ResearchPanel } from './ResearchPanel';
-import { Upload, Globe, BookOpen, School, Brain, Sparkles, Copy, Check, Youtube, Maximize2, Minimize2, X } from 'lucide-react';
+import { Upload, Globe, BookOpen, School, Brain, Sparkles, Copy, Check, Youtube, Maximize2, Minimize2, X, Clock, ExternalLink } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { motion, AnimatePresence } from 'framer-motion';
 import { VoiceRecorder } from './VoiceRecorder';
 
 // Define Tool Call Types
@@ -27,20 +28,22 @@ export function SidePanelContent({
     onToggleExpand,
     onOpenTabs,
     onClose,
+    onNavigate,
     pendingAIResponse,
     onResponseProcessed,
     onSwitchMode,
     researchContext,
     onSetResearchContext
 }: {
-    mode: 'notes' | 'chat' | 'settings' | 'research',
+    mode: 'notes' | 'chat' | 'settings' | 'research' | 'history',
     expansionMode?: 'compact' | 'half' | 'full',
     onToggleExpand?: () => void,
     onOpenTabs?: (urls: string[]) => void,
     onClose?: () => void,
+    onNavigate?: (url: string) => void,
     pendingAIResponse?: any,
     onResponseProcessed?: () => void,
-    onSwitchMode?: (mode: 'notes' | 'chat' | 'settings' | 'research' | null) => void,
+    onSwitchMode?: (mode: 'notes' | 'chat' | 'settings' | 'research' | 'history' | null) => void,
     researchContext?: any,
     onSetResearchContext?: (ctx: any) => void
 }) {
@@ -426,25 +429,31 @@ export function SidePanelContent({
                 </div>
 
                 {studyData && (
-                    <div className="flex gap-2 mb-4 text-xs">
-                        <button
-                            onClick={() => setStudyMode('summary')}
-                            className={`flex-1 p-2 rounded flex items-center justify-center gap-1 ${studyMode === 'summary' ? 'bg-purple-600' : 'bg-white/10 hover:bg-white/20'}`}
-                        >
-                            <BookOpen size={12} /> Summary
-                        </button>
-                        <button
-                            onClick={() => setStudyMode('quiz')}
-                            className={`flex-1 p-2 rounded flex items-center justify-center gap-1 ${studyMode === 'quiz' ? 'bg-purple-600' : 'bg-white/10 hover:bg-white/20'}`}
-                        >
-                            <Brain size={12} /> Quiz
-                        </button>
-                        <button
-                            onClick={() => setStudyMode('flashcards')}
-                            className={`flex-1 p-2 rounded flex items-center justify-center gap-1 ${studyMode === 'flashcards' ? 'bg-purple-600' : 'bg-white/10 hover:bg-white/20'}`}
-                        >
-                            <School size={12} /> Flashcards
-                        </button>
+                    <div className="flex gap-2 mb-4 text-xs bg-black/20 p-1 rounded-lg">
+                        {[
+                            { id: 'summary', icon: BookOpen, label: 'Summary' },
+                            { id: 'quiz', icon: Brain, label: 'Quiz' },
+                            { id: 'flashcards', icon: School, label: 'Flashcards' }
+                        ].map((item) => (
+                            <motion.button
+                                key={item.id}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => setStudyMode(item.id as any)}
+                                className="relative flex-1 p-2 rounded flex items-center justify-center gap-1 text-white transition-colors"
+                            >
+                                {studyMode === item.id && (
+                                    <motion.div
+                                        layoutId="study-active-bg"
+                                        className="absolute inset-0 bg-purple-600 rounded shadow-sm"
+                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                    />
+                                )}
+                                <span className="relative z-10 flex items-center gap-1">
+                                    <item.icon size={12} />
+                                    {item.label}
+                                </span>
+                            </motion.button>
+                        ))}
                     </div>
                 )
                 }
@@ -452,160 +461,196 @@ export function SidePanelContent({
                 <div className="flex-1 overflow-y-auto space-y-2 mb-4 h-full custom-scrollbar">
                     {loading && <div className="text-center p-4">Generating study materials... <br /><span className="text-xs text-gray-400">This may take a moment.</span></div>}
 
-                    {!loading && studyMode === 'none' && (
-                        <>
-                            {notes.length === 0 && <div className="text-gray-500 text-sm">No notes found.</div>}
-                            {notes.map((n, i) => (
-                                <div key={i} className="bg-white/5 p-2 rounded text-sm whitespace-pre-wrap">{n.content}</div>
-                            ))}
-                        </>
-                    )}
+                    <AnimatePresence mode="wait">
+                        {!loading && studyMode === 'none' && (
+                            <motion.div
+                                key="none"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                {notes.length === 0 && <div className="text-gray-500 text-sm">No notes found.</div>}
+                                {notes.map((n, i) => (
+                                    <div key={i} className="bg-white/5 p-2 rounded text-sm whitespace-pre-wrap mb-2">{n.content}</div>
+                                ))}
+                            </motion.div>
+                        )}
 
-                    {!loading && studyMode === 'summary' && studyData?.summary && (
-                        <div className="bg-white/5 p-4 rounded text-sm whitespace-pre-wrap leading-relaxed">
-                            <h3 className="font-bold mb-2 text-purple-300">Summary</h3>
-                            {studyData.summary}
-                        </div>
-                    )}
+                        {!loading && studyMode === 'summary' && studyData?.summary && (
+                            <motion.div
+                                key="summary"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                transition={{ duration: 0.2 }}
+                                className="bg-white/5 p-4 rounded text-sm whitespace-pre-wrap leading-relaxed"
+                            >
+                                <h3 className="font-bold mb-2 text-purple-300">Summary</h3>
+                                {studyData.summary}
+                            </motion.div>
+                        )}
 
-                    {!loading && studyMode === 'quiz' && studyData?.quiz && (
-                        <div className="space-y-4">
-                            {studyData.quiz.map((q: any, i: number) => (
-                                <div key={i} className="bg-white/5 p-4 rounded text-sm">
-                                    <h4 className="font-bold mb-2">{i + 1}. {q.question}</h4>
-                                    <div className="space-y-1">
-                                        {q.options.map((opt: string, optIndex: number) => {
-                                            const isSelected = quizAnswers[i] === opt;
-                                            const isCorrect = opt === q.correctAnswer;
-                                            let bgClass = "bg-white/5 hover:bg-white/10";
+                        {!loading && studyMode === 'quiz' && studyData?.quiz && (
+                            <motion.div
+                                key="quiz"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                transition={{ duration: 0.2 }}
+                                className="space-y-4"
+                            >
+                                {studyData.quiz.map((q: any, i: number) => (
+                                    <div key={i} className="bg-white/5 p-4 rounded text-sm">
+                                        <h4 className="font-bold mb-2">{i + 1}. {q.question}</h4>
+                                        <div className="space-y-1">
+                                            {q.options.map((opt: string, optIndex: number) => {
+                                                const isSelected = quizAnswers[i] === opt;
+                                                const isCorrect = opt === q.correctAnswer;
+                                                let bgClass = "bg-white/5 hover:bg-white/10";
 
-                                            if (showQuizResult) {
-                                                if (isCorrect) bgClass = "bg-green-500/20 border border-green-500";
-                                                else if (isSelected && !isCorrect) bgClass = "bg-red-500/20 border border-red-500";
-                                            } else if (isSelected) {
-                                                bgClass = "bg-purple-600";
+                                                if (showQuizResult) {
+                                                    if (isCorrect) bgClass = "bg-green-500/20 border border-green-500";
+                                                    else if (isSelected && !isCorrect) bgClass = "bg-red-500/20 border border-red-500";
+                                                } else if (isSelected) {
+                                                    bgClass = "bg-purple-600";
+                                                }
+
+                                                return (
+                                                    <motion.button
+                                                        key={optIndex}
+                                                        whileHover={{ scale: 1.01, backgroundColor: "rgba(255,255,255,0.1)" }}
+                                                        whileTap={{ scale: 0.99 }}
+                                                        onClick={() => !showQuizResult && setQuizAnswers(prev => ({ ...prev, [i]: opt }))}
+                                                        className={`w-full text-left p-2 rounded transition-colors ${bgClass}`}
+                                                    >
+                                                        {opt}
+                                                    </motion.button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ))}
+                                <motion.button
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => setShowQuizResult(!showQuizResult)}
+                                    className="w-full bg-purple-600 p-2 rounded font-bold hover:bg-purple-700 transition-colors mb-2"
+                                >
+                                    {showQuizResult ? "Hide Results" : "Check Answers"}
+                                </motion.button>
+                                <motion.button
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={async () => {
+                                        setLoading(true);
+                                        const webview = document.getElementById('main-webview') as any;
+                                        if (webview) {
+                                            try {
+                                                const text = await webview.executeJavaScript('document.body.innerText');
+                                                const res = await api.ai.generateMoreQuestions(text, studyData.quiz);
+                                                if (res.quiz && res.quiz.length > 0) {
+                                                    setStudyData((prev: any) => ({
+                                                        ...prev,
+                                                        quiz: [...prev.quiz, ...res.quiz]
+                                                    }));
+                                                }
+                                            } catch (e) {
+                                                console.error(e);
                                             }
+                                        }
+                                        setLoading(false);
+                                    }}
+                                    className="w-full bg-white/10 p-2 rounded font-bold hover:bg-white/20 transition-colors"
+                                >
+                                    Generate More Questions
+                                </motion.button>
+                            </motion.div>
+                        )}
 
-                                            return (
-                                                <button
-                                                    key={optIndex}
-                                                    onClick={() => !showQuizResult && setQuizAnswers(prev => ({ ...prev, [i]: opt }))}
-                                                    className={`w-full text-left p-2 rounded transition-colors ${bgClass}`}
-                                                >
-                                                    {opt}
-                                                </button>
-                                            );
-                                        })}
+                        {!loading && studyMode === 'flashcards' && studyData?.flashcards && studyData.flashcards.length > 0 && (
+                            <motion.div
+                                key="flashcards"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                transition={{ duration: 0.2 }}
+                                className="flex flex-col items-center justify-center h-full"
+                            >
+                                <div
+                                    onClick={() => setIsFlipped(!isFlipped)}
+                                    className="w-full max-w-sm h-64 perspective-1000 cursor-pointer"
+                                >
+                                    <div className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
+                                        {/* Front */}
+                                        <div className="absolute w-full h-full bg-gradient-to-br from-purple-900 to-indigo-900 rounded-xl p-6 flex flex-col items-center justify-center text-center backface-hidden shadow-xl border border-white/10">
+                                            <h3 className="text-sm uppercase tracking-widest text-purple-300 mb-4">Term</h3>
+                                            <p className="text-xl font-bold">{studyData.flashcards[currentFlashcardIndex].front}</p>
+                                            <p className="absolute bottom-4 text-xs text-gray-400">Click to flip</p>
+                                        </div>
+
+                                        {/* Back */}
+                                        <div className="absolute w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 flex flex-col items-center justify-center text-center backface-hidden rotate-y-180 shadow-xl border border-white/10" style={{ transform: 'rotateY(180deg)' }}>
+                                            <h3 className="text-sm uppercase tracking-widest text-green-300 mb-4">Definition</h3>
+                                            <p className="text-lg">{studyData.flashcards[currentFlashcardIndex].back}</p>
+                                            <p className="absolute bottom-4 text-xs text-gray-400">Click to flip back</p>
+                                        </div>
                                     </div>
                                 </div>
-                            ))}
-                            <button
-                                onClick={() => setShowQuizResult(!showQuizResult)}
-                                className="w-full bg-purple-600 p-2 rounded font-bold hover:bg-purple-700 transition-colors mb-2"
-                            >
-                                {showQuizResult ? "Hide Results" : "Check Answers"}
-                            </button>
-                            <button
-                                onClick={async () => {
-                                    setLoading(true);
-                                    const webview = document.getElementById('main-webview') as any;
-                                    if (webview) {
-                                        try {
-                                            const text = await webview.executeJavaScript('document.body.innerText');
-                                            const res = await api.ai.generateMoreQuestions(text, studyData.quiz);
-                                            if (res.quiz && res.quiz.length > 0) {
-                                                setStudyData((prev: any) => ({
-                                                    ...prev,
-                                                    quiz: [...prev.quiz, ...res.quiz]
-                                                }));
-                                            }
-                                        } catch (e) {
-                                            console.error(e);
-                                        }
-                                    }
-                                    setLoading(false);
-                                }}
-                                className="w-full bg-white/10 p-2 rounded font-bold hover:bg-white/20 transition-colors"
-                            >
-                                Generate More Questions
-                            </button>
-                        </div>
-                    )}
 
-                    {!loading && studyMode === 'flashcards' && studyData?.flashcards && studyData.flashcards.length > 0 && (
-                        <div className="flex flex-col items-center justify-center h-full">
-                            <div
-                                onClick={() => setIsFlipped(!isFlipped)}
-                                className="w-full max-w-sm h-64 perspective-1000 cursor-pointer"
-                            >
-                                <div className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
-                                    {/* Front */}
-                                    <div className="absolute w-full h-full bg-gradient-to-br from-purple-900 to-indigo-900 rounded-xl p-6 flex flex-col items-center justify-center text-center backface-hidden shadow-xl border border-white/10">
-                                        <h3 className="text-sm uppercase tracking-widest text-purple-300 mb-4">Term</h3>
-                                        <p className="text-xl font-bold">{studyData.flashcards[currentFlashcardIndex].front}</p>
-                                        <p className="absolute bottom-4 text-xs text-gray-400">Click to flip</p>
-                                    </div>
-
-                                    {/* Back */}
-                                    <div className="absolute w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 flex flex-col items-center justify-center text-center backface-hidden rotate-y-180 shadow-xl border border-white/10" style={{ transform: 'rotateY(180deg)' }}>
-                                        <h3 className="text-sm uppercase tracking-widest text-green-300 mb-4">Definition</h3>
-                                        <p className="text-lg">{studyData.flashcards[currentFlashcardIndex].back}</p>
-                                        <p className="absolute bottom-4 text-xs text-gray-400">Click to flip back</p>
-                                    </div>
+                                <div className="flex items-center gap-4 mt-8">
+                                    <motion.button
+                                        whileTap={{ scale: 0.9 }}
+                                        onClick={() => {
+                                            setIsFlipped(false);
+                                            setCurrentFlashcardIndex(prev => Math.max(0, prev - 1));
+                                        }}
+                                        disabled={currentFlashcardIndex === 0}
+                                        className="p-2 rounded-full bg-white/10 disabled:opacity-50 hover:bg-white/20"
+                                    >
+                                        ← Prev
+                                    </motion.button>
+                                    <span className="text-sm font-mono">
+                                        {currentFlashcardIndex + 1} / {studyData.flashcards.length}
+                                    </span>
+                                    <motion.button
+                                        whileTap={{ scale: 0.9 }}
+                                        onClick={() => {
+                                            setIsFlipped(false);
+                                            setCurrentFlashcardIndex(prev => Math.min(studyData.flashcards.length - 1, prev + 1));
+                                        }}
+                                        disabled={currentFlashcardIndex === studyData.flashcards.length - 1}
+                                        className="p-2 rounded-full bg-white/10 disabled:opacity-50 hover:bg-white/20"
+                                    >
+                                        Next →
+                                    </motion.button>
                                 </div>
-                            </div>
-
-                            <div className="flex items-center gap-4 mt-8">
-                                <button
-                                    onClick={() => {
-                                        setIsFlipped(false);
-                                        setCurrentFlashcardIndex(prev => Math.max(0, prev - 1));
-                                    }}
-                                    disabled={currentFlashcardIndex === 0}
-                                    className="p-2 rounded-full bg-white/10 disabled:opacity-50 hover:bg-white/20"
-                                >
-                                    ← Prev
-                                </button>
-                                <span className="text-sm font-mono">
-                                    {currentFlashcardIndex + 1} / {studyData.flashcards.length}
-                                </span>
-                                <button
-                                    onClick={() => {
-                                        setIsFlipped(false);
-                                        setCurrentFlashcardIndex(prev => Math.min(studyData.flashcards.length - 1, prev + 1));
-                                    }}
-                                    disabled={currentFlashcardIndex === studyData.flashcards.length - 1}
-                                    className="p-2 rounded-full bg-white/10 disabled:opacity-50 hover:bg-white/20"
-                                >
-                                    Next →
-                                </button>
-                            </div>
-                            <button
-                                onClick={async () => {
-                                    setLoading(true);
-                                    const webview = document.getElementById('main-webview') as any;
-                                    if (webview) {
-                                        try {
-                                            const text = await webview.executeJavaScript('document.body.innerText');
-                                            const res = await api.ai.generateMoreFlashcards(text, studyData.flashcards);
-                                            if (res.flashcards && res.flashcards.length > 0) {
-                                                setStudyData((prev: any) => ({
-                                                    ...prev,
-                                                    flashcards: [...prev.flashcards, ...res.flashcards]
-                                                }));
+                                <motion.button
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={async () => {
+                                        setLoading(true);
+                                        const webview = document.getElementById('main-webview') as any;
+                                        if (webview) {
+                                            try {
+                                                const text = await webview.executeJavaScript('document.body.innerText');
+                                                const res = await api.ai.generateMoreFlashcards(text, studyData.flashcards);
+                                                if (res.flashcards && res.flashcards.length > 0) {
+                                                    setStudyData((prev: any) => ({
+                                                        ...prev,
+                                                        flashcards: [...prev.flashcards, ...res.flashcards]
+                                                    }));
+                                                }
+                                            } catch (e) {
+                                                console.error(e);
                                             }
-                                        } catch (e) {
-                                            console.error(e);
                                         }
-                                    }
-                                    setLoading(false);
-                                }}
-                                className="mt-4 bg-white/10 px-4 py-2 rounded text-sm hover:bg-white/20 transition-colors"
-                            >
-                                Generate More Flashcards
-                            </button>
-                        </div>
-                    )}
+                                        setLoading(false);
+                                    }}
+                                    className="mt-4 bg-white/10 px-4 py-2 rounded text-sm hover:bg-white/20 transition-colors"
+                                >
+                                    Generate More Flashcards
+                                </motion.button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
         );
@@ -619,20 +664,24 @@ export function SidePanelContent({
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-lg font-bold">AI Assistant</h2>
                     <div className="flex items-center gap-2">
-                        <button
+                        <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
                             onClick={onToggleExpand}
                             className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
                             title={expansionMode === 'full' ? "Contract" : "Expand"}
                         >
                             <ExpandIcon size={18} />
-                        </button>
-                        <button
+                        </motion.button>
+                        <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
                             onClick={onClose}
                             className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
                             title="Close"
                         >
                             <X size={18} />
-                        </button>
+                        </motion.button>
                     </div>
                 </div>
 
@@ -644,7 +693,13 @@ export function SidePanelContent({
                     >
                         {messages.length === 0 && <div className="text-gray-500 text-xs text-center">Ask questions about your notes or upload files...</div>}
                         {messages.map((m, i) => (
-                            <div key={i} className={m.role === 'user' ? "text-right" : "text-left"}>
+                            <motion.div 
+                                key={i} 
+                                initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                transition={{ duration: 0.2 }}
+                                className={m.role === 'user' ? "text-right" : "text-left"}
+                            >
                                 {m.role === 'assistant' && m.toolCall && (
                                     <div className="inline-block w-full max-w-[90%] text-left mt-2 mb-2">
                                         <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 shadow-lg">
@@ -663,18 +718,20 @@ export function SidePanelContent({
 
                                             {m.toolCall.status === 'pending' && (
                                                 <div className="flex gap-2">
-                                                    <button
+                                                    <motion.button 
+                                                        whileTap={{ scale: 0.95 }}
                                                         onClick={() => handleToolAction(i, 'approve')}
                                                         className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs py-2 rounded font-bold transition-colors"
                                                     >
                                                         Allow
-                                                    </button>
-                                                    <button
+                                                    </motion.button>
+                                                    <motion.button 
+                                                        whileTap={{ scale: 0.95 }}
                                                         onClick={() => handleToolAction(i, 'deny')}
                                                         className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-xs py-2 rounded font-bold transition-colors"
                                                     >
                                                         Deny
-                                                    </button>
+                                                    </motion.button>
                                                 </div>
                                             )}
 
@@ -701,7 +758,8 @@ export function SidePanelContent({
                                                     <Sparkles size={14} className="text-indigo-400" />
                                                     <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-300">AI Summary</span>
                                                 </div>
-                                                <button
+                                                <motion.button
+                                                    whileTap={{ scale: 0.9 }}
                                                     onClick={() => {
                                                         navigator.clipboard.writeText((m as any).content);
                                                         setCopiedId(i);
@@ -710,7 +768,7 @@ export function SidePanelContent({
                                                     className="p-1 hover:bg-white/10 rounded transition-colors text-indigo-400"
                                                 >
                                                     {copiedId === i ? <Check size={12} /> : <Copy size={12} />}
-                                                </button>
+                                                </motion.button>
                                             </div>
                                             <div className="p-3">
                                                 <div className="text-sm leading-relaxed text-gray-100 markdown-content">
@@ -730,7 +788,7 @@ export function SidePanelContent({
                                         </div>
                                     )
                                 )}
-                            </div>
+                            </motion.div>
                         ))}
                         <div ref={messagesEndRef} />
                     </div>
@@ -741,12 +799,12 @@ export function SidePanelContent({
                         <input type="file" className="hidden" onChange={handleFileUpload} />
                         <Upload size={16} />
                     </label>
-                    <button onClick={handleSummarizePage} className="bg-white/10 p-1.5 rounded hover:bg-white/20 text-gray-400 hover:text-white transition-colors" title="Summarize Page">
+                    <motion.button whileTap={{ scale: 0.9 }} onClick={handleSummarizePage} className="bg-white/10 p-1.5 rounded hover:bg-white/20 text-gray-400 hover:text-white transition-colors" title="Summarize Page">
                         <Globe size={16} />
-                    </button>
-                    <button onClick={handleSummarizeVideo} className="bg-white/10 p-1.5 rounded hover:bg-white/20 text-gray-400 hover:text-white transition-colors" title="Summarize Video">
+                    </motion.button>
+                    <motion.button whileTap={{ scale: 0.9 }} onClick={handleSummarizeVideo} className="bg-white/10 p-1.5 rounded hover:bg-white/20 text-gray-400 hover:text-white transition-colors" title="Summarize Video">
                         <Youtube size={16} />
-                    </button>
+                    </motion.button>
                 </div>
 
                 <div className="flex gap-2 relative">
@@ -765,11 +823,94 @@ export function SidePanelContent({
                         onKeyDown={e => e.key === 'Enter' && sendMessage()}
                         placeholder="Ask AI..."
                     />
-                    <button onClick={sendMessage} className="bg-blue-600 px-3 py-1 rounded text-sm">Send</button>
+                    <motion.button whileTap={{ scale: 0.9 }} onClick={sendMessage} className="bg-blue-600 px-3 py-1 rounded text-sm">Send</motion.button>
                 </div>
             </div>
         );
     }
+    // History Mock Data (Use api.db.getHistory in real app)
+    const [history, setHistory] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (mode === 'history') {
+           loadHistory();
+        }
+    }, [mode]);
+
+    const loadHistory = async () => {
+        setLoading(true);
+        try {
+            const h = await api.db.getHistory(); // Assuming this exists or mocked
+            setHistory(h || []);
+        } catch {
+             // Mock if fail
+             setHistory([
+                 { title: "Google", url: "https://google.com", timestamp: Date.now() },
+                 { title: "React Docs", url: "https://react.dev", timestamp: Date.now() - 100000 }
+             ]);
+        }
+        setLoading(false);
+    };
+
+    if (mode === 'history') {
+        const ExpandIcon = expansionMode === 'full' ? Minimize2 : expansionMode === 'half' ? Maximize2 : Maximize2;
+        return (
+            <div className="flex flex-col h-full text-white overflow-hidden">
+                <div className="flex justify-between items-center mb-4">
+                    <div className="flex items-center gap-2">
+                        <Clock size={18} className="text-yellow-500" />
+                        <h2 className="text-lg font-bold">History</h2>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={onToggleExpand}
+                            className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
+                            title={expansionMode === 'full' ? "Contract" : "Expand"}
+                        >
+                            <ExpandIcon size={18} />
+                        </motion.button>
+                        <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={onClose}
+                            className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
+                            title="Close"
+                        >
+                            <X size={18} />
+                        </motion.button>
+                    </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-1">
+                    {loading && history.length === 0 && <div className="text-center p-4 text-gray-400">Loading history...</div>}
+                    {!loading && history.length === 0 && <div className="text-center p-4 text-gray-500">No history yet.</div>}
+                    {history.map((h, i) => (
+                        <div
+                            key={i}
+                            onClick={() => onNavigate?.(h.url)}
+                            className="bg-white/5 p-3 rounded-lg hover:bg-white/10 cursor-pointer transition-all border border-transparent hover:border-white/10 group"
+                        >
+                            <div className="flex justify-between items-start gap-2">
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="text-sm font-medium truncate text-gray-200 group-hover:text-white">{h.title || 'Untitled Page'}</h4>
+                                    <p className="text-xs text-gray-500 truncate">{h.url}</p>
+                                </div>
+                                <button className="text-gray-600 hover:text-white transition-colors">
+                                    <ExternalLink size={14} />
+                                </button>
+                            </div>
+                            <div className="mt-2 text-[10px] text-gray-600 font-mono">
+                                {new Date(h.timestamp).toLocaleString()}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
     if (mode === 'research') {
         return <ResearchPanel expansionMode={expansionMode} onToggleExpand={onToggleExpand} onOpenTabs={onOpenTabs} onClose={onClose} initialContext={researchContext} />;
     }

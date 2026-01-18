@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useBrowserAPI } from '../hooks/useBrowserAPI';
 import { Search, Maximize2, Minimize2, BookOpen, X } from 'lucide-react';
 import { clsx } from 'clsx';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Workspace {
     _id: string;
@@ -177,7 +178,9 @@ export function ResearchPanel({
             {currentWorkspaceId && (
                 <>
                     <div className="flex gap-2 mb-2">
-                        <button
+                        <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
                             onClick={async () => {
                                 if (!currentWorkspaceId) return;
                                 setLoading(true);
@@ -224,7 +227,7 @@ export function ResearchPanel({
                             className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs py-2 rounded flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
                         >
                             {loading ? "Analyzing..." : <><BookOpen size={14} /> Analyze This Page</>}
-                        </button>
+                        </motion.button>
                     </div>
 
                     <div className="relative mb-2">
@@ -238,39 +241,61 @@ export function ResearchPanel({
                     </div>
 
                     <div className="flex border-b border-white/10 mb-2">
-                        {['sources', 'notes', 'citations'].map(t => (
-                            <button
-                                key={t}
-                                onClick={() => setTab(t as any)}
-                                className={clsx(
-                                    "flex-1 pb-2 text-sm capitalize transition-colors",
-                                    tab === t ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"
-                                )}
-                            >
-                                {t}
-                            </button>
-                        ))}
+                        {['sources', 'notes', 'citations'].map(t => {
+                            const isActive = tab === t;
+                            return (
+                                <motion.button
+                                    key={t}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => setTab(t as any)}
+                                    className={clsx(
+                                        "relative flex-1 pb-2 text-sm capitalize transition-colors outline-none",
+                                        isActive ? "text-blue-400" : "text-gray-400 hover:text-white"
+                                    )}
+                                >
+                                    {t}
+                                    {isActive && (
+                                        <motion.div
+                                            layoutId="research-active-tab"
+                                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400"
+                                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                        />
+                                    )}
+                                </motion.button>
+                            );
+                        })}
                     </div>
 
-                    <div className="flex-1 overflow-y-auto space-y-2">
-                        {filteredList.map((item: any, i: number) => (
-                            <div key={i} className="bg-white/5 p-2 rounded text-xs break-words hover:bg-white/10 cursor-pointer">
-                                {tab === 'sources' && (
-                                    <>
-                                        <div className="font-bold mb-1">{item.title || 'Untitled'}</div>
-                                        <div className="text-gray-400 truncate">{item.url}</div>
-                                    </>
-                                )}
-                                {tab === 'notes' && <div>{item.content}</div>}
-                                {tab === 'citations' && (
-                                    <>
-                                        <div className="italic mb-1">"{item.content}"</div>
-                                        <div className="text-gray-500">{item.sourceUrl}</div>
-                                    </>
-                                )}
-                            </div>
-                        ))}
-                        {filteredList.length === 0 && <div className="text-gray-500 text-center text-xs mt-4">No items found</div>}
+                    <div className="flex-1 overflow-y-auto space-y-2 overflow-x-hidden">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={tab}
+                                initial={{ opacity: 0, x: 10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -10 }}
+                                transition={{ duration: 0.2 }}
+                                className="space-y-2"
+                            >
+                                {filteredList.map((item: any, i: number) => (
+                                    <div key={i} className="bg-white/5 p-2 rounded text-xs break-words hover:bg-white/10 cursor-pointer">
+                                        {tab === 'sources' && (
+                                            <>
+                                                <div className="font-bold mb-1">{item.title || 'Untitled'}</div>
+                                                <div className="text-gray-400 truncate">{item.url}</div>
+                                            </>
+                                        )}
+                                        {tab === 'notes' && <div>{item.content}</div>}
+                                        {tab === 'citations' && (
+                                            <>
+                                                <div className="italic mb-1">"{item.content}"</div>
+                                                <div className="text-gray-500">{item.sourceUrl}</div>
+                                            </>
+                                        )}
+                                    </div>
+                                ))}
+                                {filteredList.length === 0 && <div className="text-gray-500 text-center text-xs mt-4">No items found</div>}
+                            </motion.div>
+                        </AnimatePresence>
                     </div>
                 </>
             )}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useBrowserAPI } from '../hooks/useBrowserAPI';
-import { Plus, Search, Maximize2, Minimize2, BookOpen } from 'lucide-react';
+import { Search, Maximize2, Minimize2, BookOpen } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface Workspace {
@@ -64,16 +64,7 @@ export function ResearchPanel({
         }
     };
 
-    const handleCreateWorkspace = async () => {
-        if (!newTopic.trim()) return;
-        try {
-            await api.db.createWorkspace(newTopic);
-            setNewTopic('');
-            loadWorkspaces();
-        } catch (e) {
-            console.error(e);
-        }
-    };
+
 
     const handleResearchAgent = async () => {
         if (!newTopic.trim()) return;

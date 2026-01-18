@@ -77,6 +77,29 @@ export function SidePanelContent({
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const lastProcessedResponseRef = useRef<any>(null);
 
+    // History State
+    const [history, setHistory] = useState<any[]>([]);
+
+    const loadHistory = async () => {
+        setLoading(true);
+        try {
+            const h = await api.db.getHistory();
+            setHistory(h || []);
+        } catch {
+             setHistory([
+                 { title: "Google", url: "https://google.com", timestamp: Date.now() },
+                 { title: "React Docs", url: "https://react.dev", timestamp: Date.now() - 100000 }
+             ]);
+        }
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        if (mode === 'history') {
+           loadHistory();
+        }
+    }, [mode]);
+
     const scrollToBottom = () => {
         // Use scrollTop on container instead of scrollIntoView to prevent window jump
         if (chatContainerRef.current) {
@@ -828,29 +851,7 @@ export function SidePanelContent({
             </div>
         );
     }
-    // History Mock Data (Use api.db.getHistory in real app)
-    const [history, setHistory] = useState<any[]>([]);
 
-    useEffect(() => {
-        if (mode === 'history') {
-           loadHistory();
-        }
-    }, [mode]);
-
-    const loadHistory = async () => {
-        setLoading(true);
-        try {
-            const h = await api.db.getHistory(); // Assuming this exists or mocked
-            setHistory(h || []);
-        } catch {
-             // Mock if fail
-             setHistory([
-                 { title: "Google", url: "https://google.com", timestamp: Date.now() },
-                 { title: "React Docs", url: "https://react.dev", timestamp: Date.now() - 100000 }
-             ]);
-        }
-        setLoading(false);
-    };
 
     if (mode === 'history') {
         const ExpandIcon = expansionMode === 'full' ? Minimize2 : expansionMode === 'half' ? Maximize2 : Maximize2;

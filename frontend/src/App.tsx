@@ -202,6 +202,25 @@ function App() {
     return () => cleanup && cleanup();
   }, [api]);
 
+  useEffect(() => {
+    // Listen for "Reload" menu event (CMD+R)
+    // We attach this to the window/app level to handle the menu action
+    if (api.tabs?.onReloadActive) {
+      const cleanup = api.tabs.onReloadActive(() => {
+        console.log("CMD+R intercepted, reloading active webview...");
+        const webview = document.getElementById('main-webview') as any;
+        if (webview) {
+          try {
+             webview.reload();
+          } catch (error) {
+            console.error("Error reloading webview:", error);
+          }
+        }
+      });
+      return () => cleanup && cleanup();
+    }
+  }, [api]);
+
   const updateTab = (id: string, updates: Partial<Tab>) => {
     setTabs(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
   };

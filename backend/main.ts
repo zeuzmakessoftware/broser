@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, session, systemPreferences, Menu, MenuItem, WebContents } from 'electron';
+import { app, BrowserWindow, ipcMain, session, systemPreferences, Menu, MenuItem, WebContents, shell } from 'electron';
 import path from 'path';
 import connectDB from './db';
 
@@ -310,6 +310,23 @@ function createWindow() {
     },
   });
 
+  // Intercept keyboard events to prevent default app reload
+  win.webContents.on('before-input-event', (event, input) => {
+    // CMD+R (Mac) or CTRL+R (Windows/Linux)
+    if ((input.control || input.meta) && input.key.toLowerCase() === 'r') {
+      console.log('Intercepted CMD+R / Ctrl+R');
+      event.preventDefault(); // Prevent default app reload
+      // Send IPC message to frontend to reload active webview
+      win.webContents.send('tabs:reload-active');
+    }
+    // F5 Check
+    if (input.key === 'F5') {
+       console.log('Intercepted F5');
+       event.preventDefault();
+       win.webContents.send('tabs:reload-active');
+    }
+  });
+
   const isDev = !app.isPackaged;
   if (isDev) {
     win.loadURL('http://localhost:5173');
@@ -342,7 +359,117 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  const createMenu = () => {
+    const isMac = process.platform === 'darwin';
+  
+    const template: Electron.MenuItemConstructorOptions[] = [
+      // { role: 'appMenu' }
+      ...(isMac
+        ? [{
+            label: app.name,
+            submenu: [
+              { role: 'about' as const },
+              { type: 'separator' as const },
+              { role: 'services' as const },
+              { type: 'separator' as const },
+              { role: 'hide' as const },
+              { role: 'hideOthers' as const },
+              { role: 'unhide' as const },
+              { type: 'separator' as const },
+              { role: 'quit' as const }
+            ]
+          }]
+        : []) as Electron.MenuItemConstructorOptions[],
+      // { role: 'fileMenu' }
+      {
+        label: 'File',
+        submenu: [
+          isMac ? { role: 'close' as const } : { role: 'quit' as const }
+        ]
+      },
+      // { role: 'editMenu' }
+      {
+        label: 'Edit',
+        submenu: [
+          { role: 'undo' as const },
+          { role: 'redo' as const },
+          { type: 'separator' as const },
+          { role: 'cut' as const },
+          { role: 'copy' as const },
+          { role: 'paste' as const },
+          { role: 'pasteAndMatchStyle' as const },
+          { role: 'delete' as const },
+          { role: 'selectAll' as const },
+          { type: 'separator' as const },
+          {
+            label: 'Speech',
+            submenu: [
+              { role: 'startSpeaking' as const },
+              { role: 'stopSpeaking' as const }
+            ]
+          }
+        ]
+      },
+      // { role: 'viewMenu' }
+      {
+        label: 'View',
+        submenu: [
+          {
+            label: 'Reload Page',
+            accelerator: 'CmdOrCtrl+R',
+            click: () => {
+               if (global.mainWindow) {
+                 global.mainWindow.webContents.send('tabs:reload-active');
+               }
+            }
+          },
+          { role: 'forceReload' as const },
+          { role: 'toggleDevTools' as const },
+          { type: 'separator' as const },
+          { role: 'resetZoom' as const },
+          { role: 'zoomIn' as const },
+          { role: 'zoomOut' as const },
+          { type: 'separator' as const },
+          { role: 'togglefullscreen' as const }
+        ]
+      },
+      // { role: 'windowMenu' }
+      {
+        label: 'Window',
+        submenu: [
+          { role: 'minimize' as const },
+          { role: 'zoom' as const },
+          ...(isMac
+            ? [
+                { type: 'separator' as const },
+                { role: 'front' as const },
+                { type: 'separator' as const },
+                { role: 'window' as const }
+              ]
+            : [
+                { role: 'close' as const }
+              ])
+        ]
+      },
+      {
+        role: 'help' as const,
+        submenu: [
+          {
+            label: 'Learn More',
+            click: async () => {
+              await shell.openExternal('https://electronjs.org');
+            }
+          }
+        ]
+      }
+    ];
+  
+    const menu = Menu.buildFromTemplate(template);
+    Menu.setApplicationMenu(menu);
+  };
+
   createWindow();
+  createMenu();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

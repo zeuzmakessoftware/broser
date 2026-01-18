@@ -42,6 +42,7 @@ interface BrowserAPI {
     };
     tabs?: {
         onOpenNewTab: (callback: (url: string) => void) => (() => void);
+        onReloadActive: (callback: () => void) => (() => void);
     };
 }
 

@@ -50,6 +50,10 @@ const BROWSER_API = {
     onOpenNewTab: (callback: (url: string) => void) => {
         ipcRenderer.on('tabs:open-new', (_, url) => callback(url));
         return () => ipcRenderer.removeAllListeners('tabs:open-new');
+    },
+    onReloadActive: (callback: () => void) => {
+        ipcRenderer.on('tabs:reload-active', () => callback());
+        return () => ipcRenderer.removeAllListeners('tabs:reload-active');
     }
   }
 };

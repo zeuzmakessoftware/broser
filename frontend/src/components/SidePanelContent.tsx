@@ -332,14 +332,14 @@ export function SidePanelContent({
                             >
                                 <div className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
                                     {/* Front */}
-                                    <div className={`absolute w-full h-full bg-gradient-to-br from-purple-900 to-indigo-900 rounded-xl p-6 flex flex-col items-center justify-center text-center backface-hidden shadow-xl border border-white/10 ${isFlipped ? 'hidden' : ''}`}>
+                                    <div className="absolute w-full h-full bg-gradient-to-br from-purple-900 to-indigo-900 rounded-xl p-6 flex flex-col items-center justify-center text-center backface-hidden shadow-xl border border-white/10">
                                         <h3 className="text-sm uppercase tracking-widest text-purple-300 mb-4">Term</h3>
                                         <p className="text-xl font-bold">{studyData.flashcards[currentFlashcardIndex].front}</p>
                                         <p className="absolute bottom-4 text-xs text-gray-400">Click to flip</p>
                                     </div>
 
                                     {/* Back */}
-                                    <div className={`absolute w - full h - full bg - gradient - to - br from - gray - 800 to - gray - 900 rounded - xl p - 6 flex flex - col items - center justify - center text - center backface - hidden rotate - y - 180 shadow - xl border border - white / 10 ${!isFlipped ? 'hidden' : ''} `} style={{ transform: 'rotateY(180deg)' }}>
+                                    <div className="absolute w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 flex flex-col items-center justify-center text-center backface-hidden rotate-y-180 shadow-xl border border-white/10" style={{ transform: 'rotateY(180deg)' }}>
                                         <h3 className="text-sm uppercase tracking-widest text-green-300 mb-4">Definition</h3>
                                         <p className="text-lg">{studyData.flashcards[currentFlashcardIndex].back}</p>
                                         <p className="absolute bottom-4 text-xs text-gray-400">Click to flip back</p>

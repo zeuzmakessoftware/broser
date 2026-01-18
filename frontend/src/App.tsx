@@ -17,15 +17,20 @@ import { useBrowserAPI } from './hooks/useBrowserAPI';
 
 // ...
 
+import { StartPage } from './components/StartPage';
+
+// ...
+
 function App() {
   const api = useBrowserAPI();
   const [tabs, setTabs] = useState<Tab[]>([
-    { id: '1', title: 'New Tab', url: 'https://google.com', active: true }
+    { id: '1', title: 'Start Page', url: 'noteva://start', active: true }
   ]);
   const [sidebarMode, setSidebarMode] = useState<'notes' | 'chat' | 'settings' | 'research' | null>(null);
   const [expansionMode, setExpansionMode] = useState<'compact' | 'half' | 'full'>('compact');
 
   const handleVoiceData = async (base64Audio: string) => {
+    // ... same as before
     console.log("Audio recorded, sending to AI...");
     // Ideally show a spinner or "Processing..." state
     try {
@@ -63,8 +68,8 @@ function App() {
   const handleNewTab = () => {
     const newTab: Tab = {
       id: Date.now().toString(),
-      title: 'New Tab',
-      url: 'https://google.com',
+      title: 'Start Page',
+      url: 'noteva://start',
       active: true
     };
     setTabs(prev => prev.map(t => ({ ...t, active: false })).concat(newTab));
@@ -144,7 +149,7 @@ function App() {
         </div>
 
         <AddressBar
-          url={activeTab?.url || ''}
+          url={activeTab?.url === 'noteva://start' ? '' : activeTab?.url || ''}
           onNavigate={handleNavigate}
           onBack={() => { (document.getElementById('main-webview') as any)?.goBack() }}
           onForward={() => { (document.getElementById('main-webview') as any)?.goForward() }}
@@ -153,14 +158,19 @@ function App() {
 
         <div className="flex-1 relative bg-white">
           {tabs.map(tab => (
-            <webview
-              key={tab.id}
-              id={tab.active ? 'main-webview' : undefined}
-              src={tab.url}
-              className={`w-full h-full ${tab.active ? 'flex' : 'hidden'}`}
-              // @ts-ignore
-              allowpopups="true"
-            />
+            <div key={tab.id} className={`w-full h-full ${tab.active ? 'flex' : 'hidden'}`}>
+              {tab.url === 'noteva://start' ? (
+                <StartPage onNavigate={handleNavigate} />
+              ) : (
+                <webview
+                  id={tab.active ? 'main-webview' : undefined}
+                  src={tab.url}
+                  className="w-full h-full"
+                  // @ts-ignore
+                  allowpopups="true"
+                />
+              )}
+            </div>
           ))}
           {sidebarMode && (
             <div className={`absolute right-0 top-0 bottom-0 bg-[#1e1e1e] border-l border-white/10 shadow-2xl z-40 animate-in slide-in-from-right duration-200 transition-all ${expansionMode === 'compact' ? 'w-80' :

@@ -320,14 +320,18 @@ function createWindow() {
   }
 
   // Handle permission requests
-  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-    const allowedPermissions = ['media', 'accessibility'];
+  const handlePermission = (webContents: WebContents, permission: string, callback: (granted: boolean) => void) => {
+    const allowedPermissions = ['media', 'accessibility', 'clipboard-read', 'notifications'];
     if (allowedPermissions.includes(permission)) {
       callback(true);
     } else {
       callback(false);
     }
-  });
+  };
+
+  session.defaultSession.setPermissionRequestHandler(handlePermission);
+  
+  session.fromPartition('persist:main').setPermissionRequestHandler(handlePermission);
 
   // Stash had IPC handlers for window controls, let's add them to the window instance or main
   // We need to store reference to 'win' if we want to use IPC handlers outside this scope,

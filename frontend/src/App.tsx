@@ -287,6 +287,8 @@ function App() {
                   className="w-full h-full"
                   // @ts-ignore
                   allowpopups="true"
+                  // @ts-ignore
+                  partition="persist:main"
                   ref={handleWebviewRef}
                   data-tab-id={tab.id}
                 />

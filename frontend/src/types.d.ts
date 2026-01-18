@@ -36,6 +36,8 @@ interface BrowserAPI {
         getWorkspaceData: (id: string) => Promise<any>;
         getNotes: () => Promise<any[]>;
         saveNote: (content: string, workspaceId?: string) => Promise<any>;
+        getHistory: () => Promise<any[]>;
+        saveHistory: (url: string, title: string) => Promise<any>;
     };
 }
 

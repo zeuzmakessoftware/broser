@@ -36,7 +36,9 @@ const BROWSER_API = {
     createWorkspace: (title: string) => ipcRenderer.invoke('db:create-workspace', title),
     getWorkspaceData: (id: string) => ipcRenderer.invoke('db:get-workspace-data', id),
     getNotes: () => ipcRenderer.invoke('db:get-notes'),
-    saveNote: (content: string, workspaceId?: string) => ipcRenderer.invoke('db:save-note', { content, workspaceId })
+    saveNote: (content: string, workspaceId?: string) => ipcRenderer.invoke('db:save-note', { content, workspaceId }),
+    getHistory: () => ipcRenderer.invoke('db:get-history'),
+    saveHistory: (url: string, title: string) => ipcRenderer.invoke('db:save-history', { url, title })
   }
 };
 

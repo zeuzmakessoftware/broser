@@ -8,6 +8,7 @@ import Task from './models/Task';
 import Source from './models/Source';
 import Citation from './models/Citation';
 import Workspace from './models/Workspace';
+import History from './models/History';
 
 // Services
 import * as aiService from './services/ai';
@@ -82,6 +83,25 @@ ipcMain.handle('db:get-citations', async () => {
   }
 });
 
+// History Handlers
+ipcMain.handle('db:save-history', async (event, { url, title }) => {
+  try {
+    await History.create({ url, title });
+    return { success: true };
+  } catch (error) {
+    return { success: false };
+  }
+});
+
+ipcMain.handle('db:get-history', async () => {
+  try {
+    const res = await History.find().sort({ timestamp: -1 }).limit(100).lean();
+    return JSON.parse(JSON.stringify(res));
+  } catch (error) {
+    return [];
+  }
+});
+
 // Workspace Handlers
 ipcMain.handle('db:get-workspaces', async () => {
   try {
@@ -115,13 +135,13 @@ ipcMain.handle('db:get-workspace-data', async (event, workspaceId) => {
       Source.find({ workspaceId }).sort({ createdAt: -1 }).lean(),
       Citation.find({ workspaceId }).sort({ createdAt: -1 }).lean()
     ]);
-    
+
     console.log(`[DEBUG] Found ${notes.length} notes, ${sources.length} sources, ${citations.length} citations`);
-    
-    return { 
-        notes: JSON.parse(JSON.stringify(notes)), 
-        sources: JSON.parse(JSON.stringify(sources)), 
-        citations: JSON.parse(JSON.stringify(citations)) 
+
+    return {
+      notes: JSON.parse(JSON.stringify(notes)),
+      sources: JSON.parse(JSON.stringify(sources)),
+      citations: JSON.parse(JSON.stringify(citations))
     };
   } catch (error) {
     console.error('Error fetching workspace data:', error);
@@ -132,33 +152,33 @@ ipcMain.handle('db:get-workspace-data', async (event, workspaceId) => {
 // AI & Voice Handler
 // Helper to handle individual AI actions
 const handleAIAction = async (action: { type: string, payload: any }) => {
-    if (action.type === 'CREATE_NOTE') {
-        const content = typeof action.payload === 'string' ? action.payload : action.payload.content;
-        const workspaceId = typeof action.payload === 'object' ? action.payload.workspaceId : undefined;
-        await Note.create({ content, workspaceId });
-    } else if (action.type === 'CREATE_TASK') { // LEGACY support
-        const title = typeof action.payload === 'string' ? action.payload : action.payload.title;
-        await Task.create({ title });
-    } else if (action.type === 'SAVE_SOURCE') {
-        await Source.create(action.payload);
-    } else if (action.type === 'SAVE_CITATION') {
-        await Citation.create(action.payload);
-    } else if (action.type === 'RESEARCH') {
-        const { topic } = action.payload;
-        if (topic) {
-            const workspace = await Workspace.create({ title: topic });
-            // IMPORTANT: Return the new workspaceId in the payload so the frontend can switch
-            action.payload.workspaceId = workspace._id.toString();
-        }
+  if (action.type === 'CREATE_NOTE') {
+    const content = typeof action.payload === 'string' ? action.payload : action.payload.content;
+    const workspaceId = typeof action.payload === 'object' ? action.payload.workspaceId : undefined;
+    await Note.create({ content, workspaceId });
+  } else if (action.type === 'CREATE_TASK') { // LEGACY support
+    const title = typeof action.payload === 'string' ? action.payload : action.payload.title;
+    await Task.create({ title });
+  } else if (action.type === 'SAVE_SOURCE') {
+    await Source.create(action.payload);
+  } else if (action.type === 'SAVE_CITATION') {
+    await Citation.create(action.payload);
+  } else if (action.type === 'RESEARCH') {
+    const { topic } = action.payload;
+    if (topic) {
+      const workspace = await Workspace.create({ title: topic });
+      // IMPORTANT: Return the new workspaceId in the payload so the frontend can switch
+      action.payload.workspaceId = workspace._id.toString();
     }
+  }
 };
 
 ipcMain.handle('ai:chat', async (event, prompt) => {
-// ... (caller of handleAIAction)
-// note: replace_file_content with context needed. This chunk only targets handleAIAction
-// I will target the full file content for DB handlers next.
-// Wait, I should do them in one tool call if possible or separate.
-// I'll do handleAIAction first.
+  // ... (caller of handleAIAction)
+  // note: replace_file_content with context needed. This chunk only targets handleAIAction
+  // I will target the full file content for DB handlers next.
+  // Wait, I should do them in one tool call if possible or separate.
+  // I'll do handleAIAction first.
 
   try {
     console.log('Received AI Prompt:', prompt);
@@ -167,13 +187,13 @@ ipcMain.handle('ai:chat', async (event, prompt) => {
 
     // Handle Side Effects
     if (aiResponse.type === 'MULTI_ACTION') {
-        if (aiResponse.payload && Array.isArray(aiResponse.payload.actions)) {
-            for (const action of aiResponse.payload.actions) {
-                await handleAIAction(action);
-            }
+      if (aiResponse.payload && Array.isArray(aiResponse.payload.actions)) {
+        for (const action of aiResponse.payload.actions) {
+          await handleAIAction(action);
         }
+      }
     } else {
-        await handleAIAction(aiResponse);
+      await handleAIAction(aiResponse);
     }
 
     // Generate Audio if there is a spoken response

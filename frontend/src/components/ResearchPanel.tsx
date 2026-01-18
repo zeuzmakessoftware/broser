@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useBrowserAPI } from '../hooks/useBrowserAPI';
-import { Search, Maximize2, Minimize2, BookOpen } from 'lucide-react';
+import { Search, Maximize2, Minimize2, BookOpen, X } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface Workspace {
@@ -17,11 +17,13 @@ interface ResearchData {
 export function ResearchPanel({
     expansionMode = 'compact',
     onToggleExpand,
-    onOpenTabs
+    onOpenTabs,
+    onClose
 }: {
     expansionMode?: 'compact' | 'half' | 'full',
     onToggleExpand?: () => void,
-    onOpenTabs?: (urls: string[]) => void
+    onOpenTabs?: (urls: string[]) => void,
+    onClose?: () => void
 }) {
     const api = useBrowserAPI();
     const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -72,14 +74,14 @@ export function ResearchPanel({
         try {
             const prompt = `I want to research: ${newTopic}. Setup my workspace and find sources.`;
             const res = await api.ai.chat(prompt); // Logic updated in main.ts/ai.ts to handle RESEARCH intent
-            
+
             // If the AI returns a RESEARCH plan
             if (res.type === 'RESEARCH') {
                 const { workspaceId, queries } = res.payload;
-                
+
                 // Refresh workspaces to see the new one
                 await loadWorkspaces();
-                
+
                 // Switch to new workspace
                 if (workspaceId) {
                     setCurrentWorkspaceId(workspaceId);
@@ -92,9 +94,9 @@ export function ResearchPanel({
 
                 setNewTopic(''); // Clear input
             } else {
-                 // Fallback if AI didn't catch specific RESEARCH intent but just answered
-                 console.log("AI Response:", res);
-                 // We could still create a workspace manually if we want
+                // Fallback if AI didn't catch specific RESEARCH intent but just answered
+                console.log("AI Response:", res);
+                // We could still create a workspace manually if we want
             }
         } catch (e) {
             console.error("Research Agent Error", e);
@@ -112,13 +114,22 @@ export function ResearchPanel({
         <div className="flex flex-col h-full text-white">
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold">Research</h2>
-                <button
-                    onClick={onToggleExpand}
-                    className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
-                    title={expansionMode === 'full' ? "Contract" : "Expand"}
-                >
-                    {expansionMode === 'full' ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={onToggleExpand}
+                        className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
+                        title={expansionMode === 'full' ? "Contract" : "Expand"}
+                    >
+                        {expansionMode === 'full' ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
+                        title="Close"
+                    >
+                        <X size={18} />
+                    </button>
+                </div>
             </div>
 
             {/* Workspace Selector */}
@@ -130,15 +141,15 @@ export function ResearchPanel({
                         value={newTopic}
                         onChange={e => setNewTopic(e.target.value)}
                     />
-                    <button 
-                        onClick={handleResearchAgent} 
+                    <button
+                        onClick={handleResearchAgent}
                         disabled={loading}
-                        className="bg-blue-600 p-1 rounded hover:bg-blue-500 disabled:opacity-50 animate-pulse" 
+                        className="bg-blue-600 p-1 rounded hover:bg-blue-500 disabled:opacity-50 animate-pulse"
                         title="AI Auto-Research"
                     >
-                        {loading ? <span className="text-xs">...</span> : <Search size={16} />} 
+                        {loading ? <span className="text-xs">...</span> : <Search size={16} />}
                     </button>
-                    </div>
+                </div>
             </div>
 
             {currentWorkspaceId && (
@@ -154,9 +165,9 @@ export function ResearchPanel({
                                         const title = webview.getTitle();
                                         const url = webview.getURL();
                                         const text = await webview.executeJavaScript('document.body.innerText');
-                                        
+
                                         const topic = workspaces.find(w => w._id === currentWorkspaceId)?.title || 'current topic';
-                                        
+
                                         const prompt = `
                                         Analyze this page for my research on: "${topic}".
                                         Perform multiple actions using "MULTI_ACTION" type to structure your response:
@@ -177,7 +188,7 @@ export function ResearchPanel({
                                         Page Content:
                                         ${text.substring(0, 15000)}
                                         `;
-                                        
+
                                         await api.ai.chat(prompt);
                                         await loadWorkspaceData(currentWorkspaceId);
                                     }
@@ -190,7 +201,7 @@ export function ResearchPanel({
                             disabled={loading}
                             className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs py-2 rounded flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
                         >
-                             {loading ? "Analyzing..." : <><BookOpen size={14} /> Analyze This Page</>}
+                            {loading ? "Analyzing..." : <><BookOpen size={14} /> Analyze This Page</>}
                         </button>
                     </div>
 

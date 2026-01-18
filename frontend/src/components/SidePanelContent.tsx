@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useBrowserAPI } from '../hooks/useBrowserAPI';
 import { ResearchPanel } from './ResearchPanel';
-import { Upload, Globe, BookOpen, School, Brain, Sparkles, Copy, Check, Youtube, Maximize2, Minimize2 } from 'lucide-react';
+import { Upload, Globe, BookOpen, School, Brain, Sparkles, Copy, Check, Youtube, Maximize2, Minimize2, X, ExternalLink, Clock } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -9,15 +9,20 @@ export function SidePanelContent({
     mode,
     expansionMode = 'compact',
     onToggleExpand,
-    onOpenTabs
+    onOpenTabs,
+    onClose,
+    onNavigate
 }: {
-    mode: 'notes' | 'chat' | 'settings' | 'research',
+    mode: 'notes' | 'chat' | 'settings' | 'research' | 'history',
     expansionMode?: 'compact' | 'half' | 'full',
     onToggleExpand?: () => void,
-    onOpenTabs?: (urls: string[]) => void
+    onOpenTabs?: (urls: string[]) => void,
+    onClose?: () => void,
+    onNavigate?: (url: string) => void
 }) {
     const api = useBrowserAPI();
     const [notes, setNotes] = useState<any[]>([]);
+    const [history, setHistory] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
     // Context & Chat State (Merged)
@@ -39,17 +44,20 @@ export function SidePanelContent({
     const scrollToBottom = () => {
         // Use scrollTop on container instead of scrollIntoView to prevent window jump
         if (chatContainerRef.current) {
-             const { scrollHeight, clientHeight } = chatContainerRef.current;
-             chatContainerRef.current.scrollTo({
-                 top: scrollHeight - clientHeight,
-                 behavior: 'smooth'
-             });
+            const { scrollHeight, clientHeight } = chatContainerRef.current;
+            chatContainerRef.current.scrollTo({
+                top: scrollHeight - clientHeight,
+                behavior: 'smooth'
+            });
         }
     };
 
     useEffect(() => {
         if (mode === 'chat') {
             scrollToBottom();
+        }
+        if (mode === 'history') {
+            loadHistory();
         }
     }, [messages, mode]);
 
@@ -58,6 +66,18 @@ export function SidePanelContent({
             loadNotes();
         }
     }, [mode]);
+
+    const loadHistory = async () => {
+        setLoading(true);
+        try {
+            const res = await api.db.getHistory();
+            setHistory(res);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const loadNotes = async () => {
         setLoading(true);
@@ -208,6 +228,13 @@ export function SidePanelContent({
                             title={expansionMode === 'full' ? "Contract" : "Expand"}
                         >
                             <ExpandIcon size={18} />
+                        </button>
+                        <button
+                            onClick={onClose}
+                            className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
+                            title="Close"
+                        >
+                            <X size={18} />
                         </button>
                         <div className="flex gap-2">
                             <button
@@ -418,18 +445,27 @@ export function SidePanelContent({
             <div className="flex flex-col h-full text-white overflow-hidden">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-lg font-bold">AI Assistant</h2>
-                    <button
-                        onClick={onToggleExpand}
-                        className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
-                        title={expansionMode === 'full' ? "Contract" : "Expand"}
-                    >
-                        <ExpandIcon size={18} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={onToggleExpand}
+                            className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
+                            title={expansionMode === 'full' ? "Contract" : "Expand"}
+                        >
+                            <ExpandIcon size={18} />
+                        </button>
+                        <button
+                            onClick={onClose}
+                            className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
+                            title="Close"
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Chat Interface */}
                 <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                    <div 
+                    <div
                         ref={chatContainerRef}
                         className="flex-1 overflow-y-auto space-y-3 mb-2 p-2 bg-black/20 rounded custom-scrollbar"
                     >
@@ -503,9 +539,63 @@ export function SidePanelContent({
             </div>
         );
     }
+    if (mode === 'history') {
+        const ExpandIcon = expansionMode === 'full' ? Minimize2 : expansionMode === 'half' ? Maximize2 : Maximize2;
+        return (
+            <div className="flex flex-col h-full text-white overflow-hidden">
+                <div className="flex justify-between items-center mb-4">
+                    <div className="flex items-center gap-2">
+                        <Clock size={18} className="text-yellow-500" />
+                        <h2 className="text-lg font-bold">History</h2>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={onToggleExpand}
+                            className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
+                            title={expansionMode === 'full' ? "Contract" : "Expand"}
+                        >
+                            <ExpandIcon size={18} />
+                        </button>
+                        <button
+                            onClick={onClose}
+                            className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
+                            title="Close"
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-1">
+                    {loading && history.length === 0 && <div className="text-center p-4 text-gray-400">Loading history...</div>}
+                    {!loading && history.length === 0 && <div className="text-center p-4 text-gray-500">No history yet.</div>}
+                    {history.map((h, i) => (
+                        <div
+                            key={i}
+                            onClick={() => onNavigate?.(h.url)}
+                            className="bg-white/5 p-3 rounded-lg hover:bg-white/10 cursor-pointer transition-all border border-transparent hover:border-white/10 group"
+                        >
+                            <div className="flex justify-between items-start gap-2">
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="text-sm font-medium truncate text-gray-200 group-hover:text-white">{h.title || 'Untitled Page'}</h4>
+                                    <p className="text-xs text-gray-500 truncate">{h.url}</p>
+                                </div>
+                                <button className="text-gray-600 hover:text-white transition-colors">
+                                    <ExternalLink size={14} />
+                                </button>
+                            </div>
+                            <div className="mt-2 text-[10px] text-gray-600 font-mono">
+                                {new Date(h.timestamp).toLocaleString()}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     if (mode === 'research') {
-        return <ResearchPanel expansionMode={expansionMode} onToggleExpand={onToggleExpand} onOpenTabs={onOpenTabs} />;
+        return <ResearchPanel expansionMode={expansionMode} onToggleExpand={onToggleExpand} onOpenTabs={onOpenTabs} onClose={onClose} />;
     }
 
     return <div className="text-white">Settings</div>;

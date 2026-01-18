@@ -26,7 +26,7 @@ function App() {
   const [tabs, setTabs] = useState<Tab[]>([
     { id: '1', title: 'Start Page', url: 'noteva://start', active: true }
   ]);
-  const [sidebarMode, setSidebarMode] = useState<'notes' | 'chat' | 'settings' | 'research' | null>(null);
+  const [sidebarMode, setSidebarMode] = useState<'notes' | 'chat' | 'settings' | 'research' | 'history' | null>(null);
   const [expansionMode, setExpansionMode] = useState<'compact' | 'half' | 'full'>('compact');
 
   const handleVoiceData = async (base64Audio: string) => {
@@ -118,6 +118,11 @@ function App() {
     console.log(`[Navigation] Navigating to: ${finalUrl}`);
     setTabs(prev => prev.map(t => t.active ? { ...t, url: finalUrl, title: finalUrl } : t));
 
+    // Save to History
+    if (!finalUrl.startsWith('noteva://')) {
+      api.db.saveHistory(finalUrl, url); // Simple title for now, webview can update it later
+    }
+
     // Electron Webview update logic
     // We update via src prop in React, but for existing webviews, loadURL is faster/more reliable
     const webview = document.getElementById('main-webview') as any;
@@ -130,7 +135,7 @@ function App() {
     }
   };
 
-  const toggleSidebar = (mode: 'notes' | 'chat' | 'settings' | 'research') => {
+  const toggleSidebar = (mode: 'notes' | 'chat' | 'settings' | 'research' | 'history') => {
     setSidebarMode(curr => curr === mode ? null : mode);
     if (!sidebarMode) setExpansionMode('compact');
   };
@@ -201,6 +206,8 @@ function App() {
                   mode={sidebarMode}
                   expansionMode={expansionMode}
                   onToggleExpand={toggleExpand}
+                  onClose={() => setSidebarMode(null)}
+                  onNavigate={handleNavigate}
                   onOpenTabs={(urls: string[]) => {
                     const newTabs = urls.map((u, i) => ({
                       id: Date.now().toString() + i,

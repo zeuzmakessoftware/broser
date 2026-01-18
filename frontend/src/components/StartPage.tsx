@@ -73,7 +73,7 @@ export function StartPage({ onNavigate, onNewTab, onVoiceClick }: StartPageProps
             Noteva
           </h1>
           <p className="text-lg md:text-xl text-[var(--text-secondary)] font-light tracking-wide">
-            The browser for <span className="text-purple-400 font-medium">thinkers</span>.
+            The browser for <span className="text-purple-400 font-medium">students</span>.
           </p>
         </motion.div>
 

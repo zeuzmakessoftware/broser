@@ -32,11 +32,13 @@ function App() {
   const [expansionMode, setExpansionMode] = useState<'compact' | 'half' | 'full'>('compact');
   const [aiResponseToProcess, setAiResponseToProcess] = useState<any>(null);
   const [researchContext, setResearchContext] = useState<{ topic?: string; workspaceId?: string; queries?: string[] } | null>(null);
+  const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
 
   const handleVoiceData = async (base64Audio: string) => {
-    // ... same as before
-    console.log("Audio recorded, sending to AI...");
     // Ideally show a spinner or "Processing..." state
+    setIsVoiceProcessing(true);
+    console.log("Audio recorded, sending to AI...");
+    
     try {
       // We can optionally pass current context (url, title) here too
       const webview = document.getElementById('main-webview') as any;
@@ -58,10 +60,29 @@ function App() {
       setSidebarMode('chat');
     } catch (e) {
       console.error("Voice Error", e);
+    } finally {
+      setIsVoiceProcessing(false);
     }
   };
 
   const { isListening, toggleListening } = useVoiceInput({ onAudioData: handleVoiceData });
+
+  const handleVoiceInteraction = () => {
+    if (isVoiceProcessing) {
+      setIsVoiceProcessing(false); // Cancel processing
+      return;
+    }
+    
+    if (isListening) {
+      // Stop listening, prepare for processing
+      toggleListening();
+      setIsVoiceProcessing(true);
+    } else {
+      // Start listening
+      toggleListening();
+      setIsVoiceProcessing(false);
+    }
+  };
 
   const activeTab = tabs.find(t => t.active) || tabs[0];
 
@@ -152,12 +173,12 @@ function App() {
 
   return (
     <div className="flex h-screen w-screen bg-[#242424] text-white overflow-hidden font-sans">
-      {isListening && <VoiceOverlay onStop={toggleListening} />}
+      {(isListening || isVoiceProcessing) && <VoiceOverlay onStop={handleVoiceInteraction} isProcessing={isVoiceProcessing} />}
       <Sidebar
         isOpen={!!sidebarMode}
         activeMode={sidebarMode}
         onToggle={toggleSidebar}
-        onVoiceClick={toggleListening}
+        onVoiceClick={handleVoiceInteraction}
         isListening={isListening}
       />
 
@@ -188,7 +209,7 @@ function App() {
           {tabs.map(tab => (
             <div key={tab.id} className={`absolute inset-0 ${tab.active ? 'block' : 'hidden'}`}>
               {tab.url === 'noteva://start' ? (
-                <StartPage onNavigate={handleNavigate} onNewTab={handleNewTab} onVoiceClick={toggleListening} />
+                <StartPage onNavigate={handleNavigate} onNewTab={handleNewTab} onVoiceClick={handleVoiceInteraction} />
               ) : (
                 <webview
                   id={tab.active ? 'main-webview' : undefined}

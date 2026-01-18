@@ -8,11 +8,17 @@ interface BrowserAPI {
         isMaximized: () => Promise<boolean>;
     };
     ai: {
-        chat: (message: string | { text?: string; audio?: string; context?: any }, context?: any) => Promise<any>;
+        chat: (message: string | { 
+            text?: string; 
+            audio?: string; 
+            media?: { mimeType: string; data: string }; 
+            context?: any;
+            generateAudio?: boolean;
+        }, context?: any) => Promise<any>;
         summarize: (content: string, url?: string) => Promise<{ summary: string }>;
         extractIntent: (voiceCommand: string) => Promise<any>;
         chatNotes: (query: string, context?: string) => Promise<{ response: string }>;
-        generateStudyMaterials: (content: string) => Promise<{ summary: string; quiz: any[]; flashcards: any[] }>;
+        generateStudyMaterials: (content: string | { content?: string; media?: { mimeType: string; data: string } }) => Promise<{ summary: string; quiz: any[]; flashcards: any[] }>;
 
         generateMoreQuestions: (content: string, existingQuestions: any[]) => Promise<{ quiz: any[] }>;
         generateMoreFlashcards: (content: string, existingFlashcards: any[]) => Promise<{ flashcards: any[] }>;

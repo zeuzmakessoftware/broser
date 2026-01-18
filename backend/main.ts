@@ -17,6 +17,13 @@ import * as voiceService from './services/voice';
 // Connect to MongoDB
 connectDB();
 
+// HandleUserData persistence in Dev
+if (!app.isPackaged) {
+    const userDataPath = path.join(process.cwd(), '.userData');
+    app.setPath('userData', userDataPath);
+    console.log(`[Dev] Setting userData path to: ${userDataPath}`);
+}
+
 // Declare global mainWindow
 declare global {
   // eslint-disable-next-line no-var
@@ -187,16 +194,17 @@ const handleAIAction = async (action: { type: string, payload: any }, defaultWor
   }
 };
 
-ipcMain.handle('ai:chat', async (event, prompt, options = {}) => {
-  // ... (caller of handleAIAction)
-  // note: replace_file_content with context needed. This chunk only targets handleAIAction
-  // I will target the full file content for DB handlers next.
-  // Wait, I should do them in one tool call if possible or separate.
-  // I'll do handleAIAction first.
-
+ipcMain.handle('ai:chat', async (event, payload: any, options = {}) => {
+  // Payload can be string (legacy) or object { text, media, audio, context }
+  // We normalized this in aiService.processPrompt to accept object.
+  // The frontend might send { text, media } or just string.
+  
+  // Normalize input for processPrompt
+  const input = typeof payload === 'string' ? { text: payload } : payload;
+  
   try {
-    console.log('Received AI Prompt:', prompt);
-    const aiResponse = await aiService.processPrompt(prompt);
+    console.log('Received AI Prompt:', JSON.stringify(input).substring(0, 200) + "...");
+    const aiResponse = await aiService.processPrompt(input);
     console.log('AI Response:', aiResponse);
 
     // Handle Side Effects
@@ -226,9 +234,11 @@ ipcMain.handle('ai:chat', async (event, prompt, options = {}) => {
       }
     }
 
-    // Generate Audio if there is a spoken response
+    // Generate Audio ONLY if requested
     let audioData = null;
-    if (aiResponse.response) {
+    const shouldGenerateAudio = input.generateAudio === true;
+    
+    if (aiResponse.response && shouldGenerateAudio) {
       try {
         audioData = await voiceService.streamAudio(aiResponse.response);
       } catch (e) {
@@ -275,8 +285,14 @@ ipcMain.handle('ai:chat-notes', async (event, { query, context }) => {
   return await aiService.processChatWithContext(query, finalContext);
 });
 
-ipcMain.handle('ai:generate-study-materials', async (event, { content }) => {
-  return await aiService.generateStudyMaterials(content);
+ipcMain.handle('ai:generate-study-materials', async (event, payload: any) => {
+  // payload can be { content: string } or { content?: string, media?: { mimeType, data } }
+  // We'll normalize it to pass to service
+  const input = typeof payload === 'string' ? { text: payload } : {
+     text: payload.content || payload.text,
+     media: payload.media
+  };
+  return await aiService.generateStudyMaterials(input);
 });
 
 ipcMain.handle('ai:generate-more-quiz', async (event, { content, existingQuestions }) => {

@@ -34,25 +34,56 @@ Payload Schemas:
 - ANSWER: null
 `;
 
-export const processPrompt = async (input: string | { audio?: string; context?: any; text?: string }) => {
+export const processPrompt = async (
+  input: string | { 
+    audio?: string; 
+    media?: { mimeType: string, data: string }; // generic media
+    context?: any; 
+    text?: string 
+  }
+) => {
     try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let userPart: any;
+        let mediaPart: any = null;
 
         if (typeof input === 'string') {
             userPart = { text: input };
-        } else if (input.audio) {
-            userPart = {
-                inlineData: {
-                    mimeType: "audio/webm",
-                    data: input.audio
-                }
-            };
-        } else if (input.context) {
-            userPart = { text: `Context: ${JSON.stringify(input.context)}\nUser: ${input.text || "Process context"}` };
-        } else if (input.text) {
-            userPart = { text: input.text };
+        } else {
+            // Check for media/audio
+            if (input.audio) {
+                mediaPart = {
+                    inlineData: {
+                        mimeType: "audio/webm",
+                        data: input.audio
+                    }
+                };
+            } else if (input.media) {
+                mediaPart = {
+                    inlineData: {
+                        mimeType: input.media.mimeType,
+                        data: input.media.data
+                    }
+                };
+            }
+
+            // Construct text part
+            if (input.context) {
+                userPart = { text: `Context: ${JSON.stringify(input.context)}\nUser: ${input.text || "Process context"}` };
+            } else if (input.text) {
+                userPart = { text: input.text };
+            } else if (!mediaPart) {
+                // If neither text nor media, fallback
+                userPart = { text: "No input provided." };
+            } else {
+                // If media is present but no text, provide a default prompt if needed, or just send media.
+                // However, Gemini usually needs some prompt.
+                userPart = { text: "Analyze this input." };
+            }
         }
+
+        const parts = [userPart];
+        if (mediaPart) parts.unshift(mediaPart); 
 
         const chat = model.startChat({
             history: [
@@ -61,7 +92,7 @@ export const processPrompt = async (input: string | { audio?: string; context?: 
             ]
         });
 
-        const result = await chat.sendMessage([userPart]);
+        const result = await chat.sendMessage(parts);
         const responseText = result.response.text();
 
         // Parse JSON
@@ -134,10 +165,29 @@ export const summarizeContent = async (text: string) => {
     }
 }
 
-export const generateStudyMaterials = async (text: string) => {
+export const generateStudyMaterials = async (
+    input: string | { text?: string; media?: { mimeType: string; data: string } }
+) => {
     try {
-        // 1. Check if N8N Webhook is configured
-        if (process.env.N8N_WEBHOOK_URL) {
+        let text = "";
+        let mediaPart: any = null;
+
+        if (typeof input === 'string') {
+            text = input;
+        } else {
+            text = input.text || "";
+            if (input.media) {
+                mediaPart = {
+                    inlineData: {
+                        mimeType: input.media.mimeType,
+                        data: input.media.data
+                    }
+                };
+            }
+        }
+
+        // 1. Check if N8N Webhook is configured (Text only support for now)
+        if (process.env.N8N_WEBHOOK_URL && !mediaPart) {
             console.log('Using n8n webhook for study materials');
             const response = await fetch(process.env.N8N_WEBHOOK_URL, {
                 method: 'POST',
@@ -148,9 +198,10 @@ export const generateStudyMaterials = async (text: string) => {
         }
 
         // 2. Fallback to Gemini
-        console.log('Using Gemini for study materials');
-        const prompt = `
-        Analyze the following text and generate study materials.
+        console.log('Using Gemini for study materials (Multimodal enabled)');
+        
+        const promptText = `
+        Analyze the following text/content and generate study materials.
         Return a valid JSON object with the following structure:
         {
             "summary": "A concise summary of the key points as bullet points",
@@ -169,11 +220,13 @@ export const generateStudyMaterials = async (text: string) => {
             ]
         }
         
-        Text to analyze:
-        ${text.substring(0, 15000)} // Limit context window
+        ${text ? `Text to analyze:\n${text.substring(0, 15000)}` : ""}
         `;
 
-        const result = await model.generateContent(prompt);
+        const parts = [{ text: promptText }];
+        if (mediaPart) parts.unshift(mediaPart);
+
+        const result = await model.generateContent(parts);
         const responseText = result.response.text();
 
         // Parse JSON

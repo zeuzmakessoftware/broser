@@ -174,18 +174,43 @@ export function SidePanelContent({
         if (!file) return;
 
         setMessages(prev => [...prev, { role: 'user', content: `Uploaded ${file.name}` }]);
-        try {
-            const text = await file.text();
-            setContext(prev => prev + "\n" + text);
-            // Summarize
-            // We need to implement ai.summarize in preload or use ai.chat?
-            // Preload has ai.summarize.
-            const res = await api.ai.summarize(text);
-            const summary = (res as any).summary || res; // depending on backend return
-            setMessages(prev => [...prev, { role: 'assistant', content: summary, isSummary: true }]);
-        } catch (err) {
-            console.error(err);
-            setMessages(prev => [...prev, { role: 'assistant', content: "Failed to read/summarize file." }]);
+        
+        const isImage = file.type.startsWith('image/');
+        const isPDF = file.type === 'application/pdf';
+
+        if (isImage || isPDF) {
+             const reader = new FileReader();
+             reader.readAsDataURL(file);
+             reader.onloadend = async () => {
+                 const base64Data = (reader.result as string).split(',')[1];
+                 const mimeType = file.type;
+                 
+                 try {
+                     // Pass media to AI
+                     // api.ai.chat handles { text, media }
+                     const res = await api.ai.chat({
+                         text: `Uploaded file: ${file.name}. Analyze this.`,
+                         media: { mimeType, data: base64Data }
+                     });
+                     processAIResponse(res);
+                 } catch (err) {
+                     console.error(err);
+                     setMessages(prev => [...prev, { role: 'assistant', content: "Failed to process file." }]);
+                 }
+             };
+        } else {
+            // Fallback to text for other files
+            try {
+                const text = await file.text();
+                // setContext(prev => prev + "\n" + text); // Maybe don't auto-add to context strictly, or do?
+                // Let's summarize it.
+                const res = await api.ai.summarize(text);
+                const summary = (res as any).summary || res;
+                setMessages(prev => [...prev, { role: 'assistant', content: summary, isSummary: true }]);
+            } catch (err) {
+                console.error(err);
+                setMessages(prev => [...prev, { role: 'assistant', content: "Failed to read/summarize file." }]);
+            }
         }
     };
 
@@ -276,7 +301,7 @@ export function SidePanelContent({
                 // Call AI with audio
                 // We use api.ai.chat which maps to backend "processPrompt". 
                 // Backend expects { audio: string } or string.
-                const res = await api.ai.chat({ audio: base64Audio, context: finalContext ? { notes: finalContext } : undefined });
+                const res = await api.ai.chat({ audio: base64Audio, context: finalContext ? { notes: finalContext } : undefined, generateAudio: true });
 
                 processAIResponse(res);
 
@@ -420,13 +445,38 @@ export function SidePanelContent({
 
         setLoading(true);
         try {
-            const text = await file.text();
-            const data = await api.ai.generateStudyMaterials(text);
-            setStudyData(data);
-            setStudyMode('summary');
+            const isImage = file.type.startsWith('image/');
+            const isPDF = file.type === 'application/pdf';
+
+            if (isImage || isPDF) {
+                 const reader = new FileReader();
+                 reader.readAsDataURL(file);
+                 reader.onloadend = async () => {
+                     const base64Data = (reader.result as string).split(',')[1];
+                     const mimeType = file.type;
+                     
+                     try {
+                        const data = await api.ai.generateStudyMaterials({
+                            content: `Analyze this ${file.type} file: ${file.name}`, // Fallback text
+                            media: { mimeType, data: base64Data }
+                        });
+                        setStudyData(data);
+                        setStudyMode('summary');
+                     } catch(err) {
+                         console.error(err);
+                     } finally {
+                         setLoading(false);
+                     }
+                 };
+            } else {
+                const text = await file.text();
+                const data = await api.ai.generateStudyMaterials(text);
+                setStudyData(data);
+                setStudyMode('summary');
+                setLoading(false);
+            }
         } catch (e) {
             console.error(e);
-        } finally {
             setLoading(false);
         }
     };
@@ -469,7 +519,7 @@ export function SidePanelContent({
                                 Analyze Page
                             </button>
                             <label className="bg-[var(--input-bg)] hover:bg-[var(--hover-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer px-2 py-1 rounded flex items-center gap-1 transition-colors" title="Upload Study Material">
-                                <input type="file" className="hidden" accept=".txt,.md,.json" onChange={handleStudyFileUpload} />
+                                <input type="file" className="hidden" accept=".txt,.md,.json,.pdf,image/*" onChange={handleStudyFileUpload} />
                                 <Upload size={12} />
                             </label>
                         </div>

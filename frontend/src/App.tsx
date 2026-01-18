@@ -9,7 +9,8 @@ import { SidePanelContent } from './components/SidePanelContent';
 interface Tab {
   id: string;
   title: string;
-  url: string;
+  url: string; // The source of truth for the webview 'src'
+  displayUrl?: string; // What is shown in the address bar
   favicon?: string;
   active: boolean;
 }
@@ -27,7 +28,7 @@ import { VoiceOverlay } from './components/VoiceOverlay';
 function App() {
   const api = useBrowserAPI();
   const [tabs, setTabs] = useState<Tab[]>([
-    { id: '1', title: 'Start Page', url: 'noteva://start', active: true }
+    { id: '1', title: 'Start Page', url: 'noteva://start', displayUrl: 'noteva://start', active: true }
   ]);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [sidebarMode, setSidebarMode] = useState<'notes' | 'chat' | 'settings' | 'research' | 'history' | null>(null);
@@ -54,7 +55,7 @@ function App() {
         } catch (e) {/* ignore */ }
       }
 
-      const res = await api.ai.chat({ audio: base64Audio, context });
+      const res = await api.ai.chat({ audio: base64Audio, context, generateAudio: true });
 
       // Delegate response handling to SidePanelContent
       setAiResponseToProcess(res);
@@ -94,6 +95,7 @@ function App() {
       id: Date.now().toString(),
       title: url ? url : 'Start Page',
       url: url ? url : 'noteva://start',
+      displayUrl: url ? url : 'noteva://start',
       active: true
     };
     setTabs(prev => prev.map(t => ({ ...t, active: false })).concat(newTab));
@@ -140,7 +142,8 @@ function App() {
     }
 
     console.log(`[Navigation] Navigating to: ${finalUrl}`);
-    setTabs(prev => prev.map(t => t.active ? { ...t, url: finalUrl, title: finalUrl } : t));
+    // Update BOTH url and displayUrl when user manually navigates
+    setTabs(prev => prev.map(t => t.active ? { ...t, url: finalUrl, displayUrl: finalUrl, title: finalUrl } : t));
 
     // Save to History
     if (!finalUrl.startsWith('noteva://')) {
@@ -239,8 +242,8 @@ function App() {
       };
 
       const onDidNavigate = (e: any) => {
-         // Also update URL if redirected
-         updateTab(tabId, { url: e.url });
+         // ONLY update displayUrl, NOT 'url' (src), to avoid re-render loops during redirects
+         updateTab(tabId, { displayUrl: e.url });
       };
 
       const onFaviconUpdated = (e: any) => {
@@ -287,7 +290,7 @@ function App() {
         </div>
 
         <AddressBar
-          url={activeTab?.url === 'noteva://start' ? '' : activeTab?.url || ''}
+          url={activeTab?.url === 'noteva://start' ? '' : (activeTab?.displayUrl || activeTab?.url || '')}
           onNavigate={handleNavigate}
           onBack={() => { (document.getElementById('main-webview') as any)?.goBack() }}
           onForward={() => { (document.getElementById('main-webview') as any)?.goForward() }}
@@ -308,6 +311,7 @@ function App() {
                   allowpopups="true"
                   // @ts-ignore
                   partition="persist:main"
+                  useragent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                   ref={handleWebviewRef}
                   data-tab-id={tab.id}
                 />
@@ -346,6 +350,7 @@ function App() {
                         id: Date.now().toString() + i,
                         title: u,
                         url: u.startsWith('http') ? u : `https://google.com/search?q=${encodeURIComponent(u)}`,
+                        displayUrl: u.startsWith('http') ? u : `https://google.com/search?q=${encodeURIComponent(u)}`,
                         active: i === urls.length - 1 // Activate last new tab
                       }));
                       setTabs(prev => {

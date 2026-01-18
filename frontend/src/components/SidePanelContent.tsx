@@ -66,6 +66,11 @@ export function SidePanelContent({
     // We also store tool calls in messages to show history, but pendingToolCall tracks active modal/blocking state if we wanted that (or just rely on message state)
     // Actually, sticking to message-based state for the UI cards is better. The `sendMessage` loop will handle the "pause".
 
+
+    // Line 78 was: const lastProcessedResponseRef = useRef<any>(null);
+    // I need to start insertion around line 76 or so.
+    // Let's just add the state.
+
     // Study Mode State
     const [studyMode, setStudyMode] = useState<'none' | 'summary' | 'quiz' | 'flashcards'>('none');
     const [studyData, setStudyData] = useState<any>(null);
@@ -73,6 +78,7 @@ export function SidePanelContent({
     const [showQuizResult, setShowQuizResult] = useState(false);
     const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
+    const [showPastNotes, setShowPastNotes] = useState(false); // New State
     const chatContainerRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const lastProcessedResponseRef = useRef<any>(null);
@@ -419,7 +425,14 @@ export function SidePanelContent({
         return (
             <div className="flex flex-col h-full text-[var(--text-primary)]">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-3xl font-serif-title text-[var(--text-primary)]">Study</h2>
+                    <motion.h2 
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                        className="text-3xl font-serif-title text-[var(--text-primary)]"
+                    >
+                        Study
+                    </motion.h2>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={onToggleExpand}
@@ -441,7 +454,7 @@ export function SidePanelContent({
                                 className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-2 py-1 rounded flex items-center gap-1 transition-colors"
                             >
                                 <School size={12} />
-                                Study This Page
+                                Analyze Page
                             </button>
                             <label className="bg-[var(--input-bg)] hover:bg-[var(--hover-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer px-2 py-1 rounded flex items-center gap-1 transition-colors" title="Upload Study Material">
                                 <input type="file" className="hidden" accept=".txt,.md,.json" onChange={handleStudyFileUpload} />
@@ -493,10 +506,36 @@ export function SidePanelContent({
                                 exit={{ opacity: 0, x: -20 }}
                                 transition={{ duration: 0.2 }}
                             >
-                                {notes.length === 0 && <div className="text-[var(--text-secondary)] text-sm">No notes found.</div>}
-                                {notes.map((n, i) => (
-                                    <div key={i} className="bg-[var(--input-bg)] p-2 rounded text-sm whitespace-pre-wrap mb-2 text-[var(--text-primary)]">{n.content}</div>
-                                ))}
+                                <div className="mb-4">
+                                    <button 
+                                        onClick={() => setShowPastNotes(!showPastNotes)}
+                                        className="flex items-center gap-2 text-sm font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors w-full text-left bg-white/5 p-2 rounded"
+                                    >
+                                        <BookOpen size={14} />
+                                        {showPastNotes ? "Hide Past Notes" : "Show Past Notes"}
+                                    </button>
+                                    
+                                    <AnimatePresence>
+                                        {showPastNotes && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: "auto", opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                className="overflow-hidden"
+                                            >
+                                                <div className="mt-2 space-y-2 pl-2 border-l-2 border-white/10">
+                                                    {notes.length === 0 && <div className="text-[var(--text-secondary)] text-sm italic">No past notes found.</div>}
+                                                    {notes.map((n, i) => (
+                                                        <div key={i} className="bg-[var(--input-bg)] p-2 rounded text-sm text-[var(--text-primary)]">
+                                                            <div className="text-xs text-[var(--text-secondary)] mb-1">{new Date(n.createdAt).toLocaleDateString()}</div>
+                                                            <div className="whitespace-pre-wrap line-clamp-3 hover:line-clamp-none transition-all">{n.content}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
                             </motion.div>
                         )}
 
@@ -685,7 +724,14 @@ export function SidePanelContent({
         return (
             <div className="flex flex-col h-full text-[var(--text-primary)] overflow-hidden">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-3xl font-serif-title">AI Assistant</h2>
+                    <motion.h2 
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                        className="text-3xl font-serif-title"
+                    >
+                        AI Assistant
+                    </motion.h2>
                     <div className="flex items-center gap-2">
                         <motion.button
                             whileHover={{ scale: 1.1 }}
@@ -860,7 +906,14 @@ export function SidePanelContent({
                 <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center gap-2">
                         <Clock size={18} className="text-[var(--text-primary)]" />
-                        <h2 className="text-3xl font-serif-title">History</h2>
+                        <motion.h2 
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.5, delay: 0.1 }}
+                            className="text-3xl font-serif-title"
+                        >
+                            History
+                        </motion.h2>
                     </div>
                     <div className="flex items-center gap-2">
                         <motion.button

@@ -138,7 +138,14 @@ export function ResearchPanel({
     return (
         <div className="flex flex-col h-full text-[var(--text-primary)]">
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-3xl font-serif-title">Research</h2>
+                <motion.h2 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: 0.1 }}
+                    className="text-3xl font-serif-title"
+                >
+                    Research
+                </motion.h2>
                 <div className="flex items-center gap-2">
                     <button
                         onClick={onToggleExpand}

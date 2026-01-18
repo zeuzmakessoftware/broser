@@ -419,7 +419,7 @@ export function SidePanelContent({
         return (
             <div className="flex flex-col h-full text-white">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-bold">Notes & Study</h2>
+                    <h2 className="text-3xl font-serif-title">Study</h2>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={onToggleExpand}
@@ -685,7 +685,7 @@ export function SidePanelContent({
         return (
             <div className="flex flex-col h-full text-white overflow-hidden">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-bold">AI Assistant</h2>
+                    <h2 className="text-3xl font-serif-title">AI Assistant</h2>
                     <div className="flex items-center gap-2">
                         <motion.button
                             whileHover={{ scale: 1.1 }}
@@ -860,7 +860,7 @@ export function SidePanelContent({
                 <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center gap-2">
                         <Clock size={18} className="text-yellow-500" />
-                        <h2 className="text-lg font-bold">History</h2>
+                        <h2 className="text-3xl font-serif-title">History</h2>
                     </div>
                     <div className="flex items-center gap-2">
                         <motion.button

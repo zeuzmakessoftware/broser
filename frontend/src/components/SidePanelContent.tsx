@@ -62,8 +62,7 @@ export function SidePanelContent({
     const [captionText, setCaptionText] = useState('');
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    // Tool Call State (Pending Confirmation)
-    const [pendingToolCall, setPendingToolCall] = useState<ToolCall | null>(null);
+
     // We also store tool calls in messages to show history, but pendingToolCall tracks active modal/blocking state if we wanted that (or just rely on message state)
     // Actually, sticking to message-based state for the UI cards is better. The `sendMessage` loop will handle the "pause".
 
@@ -845,11 +844,7 @@ export function SidePanelContent({
     }
 
     if (mode === 'research') {
-<<<<<<< HEAD
-        return <ResearchPanel expansionMode={expansionMode} onToggleExpand={onToggleExpand} onOpenTabs={onOpenTabs} onClose={onClose} />;
-=======
-        return <ResearchPanel expansionMode={expansionMode} onToggleExpand={onToggleExpand} onOpenTabs={onOpenTabs} initialContext={researchContext} />;
->>>>>>> dd045c0 (voice toolcall)
+        return <ResearchPanel expansionMode={expansionMode} onToggleExpand={onToggleExpand} onOpenTabs={onOpenTabs} onClose={onClose} initialContext={researchContext} />;
     }
 
     return <div className="text-white">Settings</div>;

@@ -15,6 +15,7 @@ interface BrowserAPI {
         generateStudyMaterials: (content: string) => Promise<{ summary: string; quiz: any[]; flashcards: any[] }>;
 
         generateMoreQuestions: (content: string, existingQuestions: any[]) => Promise<{ quiz: any[] }>;
+        generateMoreFlashcards: (content: string, existingFlashcards: any[]) => Promise<{ flashcards: any[] }>;
         analyzeSource: (content: string, topic: string) => Promise<{ tag: string; summary: string }>;
     };
     voice: {

@@ -19,6 +19,7 @@ const BROWSER_API = {
     chatNotes: (query: string, context?: string) => ipcRenderer.invoke('ai:chat-notes', { query, context }),
     generateStudyMaterials: (content: string) => ipcRenderer.invoke('ai:generate-study-materials', { content }),
     generateMoreQuestions: (content: string, existingQuestions: any[]) => ipcRenderer.invoke('ai:generate-more-quiz', { content, existingQuestions }),
+    generateMoreFlashcards: (content: string, existingFlashcards: any[]) => ipcRenderer.invoke('ai:generate-more-flashcards', { content, existingFlashcards }),
     analyzeSource: (content: string, topic: string) => ipcRenderer.invoke('ai:analyze-source', { content, topic })
   },
 

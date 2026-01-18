@@ -175,6 +175,10 @@ ipcMain.handle('ai:generate-more-quiz', async (event, { content, existingQuestio
   return await aiService.generateMoreQuizQuestions(content, existingQuestions);
 });
 
+ipcMain.handle('ai:generate-more-flashcards', async (event, { content, existingFlashcards }) => {
+  return await aiService.generateMoreFlashcards(content, existingFlashcards);
+});
+
 ipcMain.handle('ai:analyze-source', async (event, { content, topic }) => {
   return await aiService.analyzeSource(content, topic);
 });

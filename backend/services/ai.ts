@@ -226,6 +226,47 @@ export const generateMoreQuizQuestions = async (text: string, existingQuestions:
     }
 }
 
+export const generateMoreFlashcards = async (text: string, existingFlashcards: any[]) => {
+    try {
+        const existingTerms = existingFlashcards.map((f: any) => f.front).join(', ');
+
+        const prompt = `
+        Analyze the following text and generate 5 NEW flashcards that are different from the existing terms.
+        
+        Existing Terms:
+        ${existingTerms}
+
+        Return a valid JSON object with the following structure:
+        {
+            "flashcards": [
+                {
+                    "front": "Concept or term",
+                    "back": "Definition or explanation"
+                }
+            ]
+        }
+        
+        Text to analyze:
+        ${text.substring(0, 15000)}
+        `;
+
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+
+        let cleanText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const firstBrace = cleanText.indexOf('{');
+        const lastBrace = cleanText.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1) {
+            cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+        }
+
+        return JSON.parse(cleanText);
+    } catch (error) {
+        console.error('Error generating more flashcards:', error);
+        return { flashcards: [] };
+    }
+}
+
 export const analyzeSource = async (text: string, topic: string) => {
     try {
         const prompt = `

@@ -310,6 +310,30 @@ export function SidePanelContent({ mode }: { mode: 'notes' | 'chat' | 'settings'
                                     Next →
                                 </button>
                             </div>
+                            <button
+                                onClick={async () => {
+                                    setLoading(true);
+                                    const webview = document.getElementById('main-webview') as any;
+                                    if (webview) {
+                                        try {
+                                            const text = await webview.executeJavaScript('document.body.innerText');
+                                            const res = await api.ai.generateMoreFlashcards(text, studyData.flashcards);
+                                            if (res.flashcards && res.flashcards.length > 0) {
+                                                setStudyData((prev: any) => ({
+                                                    ...prev,
+                                                    flashcards: [...prev.flashcards, ...res.flashcards]
+                                                }));
+                                            }
+                                        } catch (e) {
+                                            console.error(e);
+                                        }
+                                    }
+                                    setLoading(false);
+                                }}
+                                className="mt-4 bg-white/10 px-4 py-2 rounded text-sm hover:bg-white/20 transition-colors"
+                            >
+                                Generate More Flashcards
+                            </button>
                         </div>
                     )}
                 </div>

@@ -33,10 +33,18 @@ export function SidePanelContent({
     const [showQuizResult, setShowQuizResult] = useState(false);
     const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
+    const chatContainerRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        // Use scrollTop on container instead of scrollIntoView to prevent window jump
+        if (chatContainerRef.current) {
+             const { scrollHeight, clientHeight } = chatContainerRef.current;
+             chatContainerRef.current.scrollTo({
+                 top: scrollHeight - clientHeight,
+                 behavior: 'smooth'
+             });
+        }
     };
 
     useEffect(() => {
@@ -325,7 +333,7 @@ export function SidePanelContent({
                     )}
 
                     {!loading && studyMode === 'flashcards' && studyData?.flashcards && studyData.flashcards.length > 0 && (
-                        <div className="flex flex-col items-center justify-center h-full min-h-[300px]">
+                        <div className="flex flex-col items-center justify-center h-full">
                             <div
                                 onClick={() => setIsFlipped(!isFlipped)}
                                 className="w-full max-w-sm h-64 perspective-1000 cursor-pointer"
@@ -407,7 +415,7 @@ export function SidePanelContent({
         const ExpandIcon = expansionMode === 'full' ? Minimize2 : expansionMode === 'half' ? Maximize2 : Maximize2;
 
         return (
-            <div className="flex flex-col h-full text-white">
+            <div className="flex flex-col h-full text-white overflow-hidden">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-lg font-bold">AI Assistant</h2>
                     <button
@@ -421,7 +429,10 @@ export function SidePanelContent({
 
                 {/* Chat Interface */}
                 <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                    <div className="flex-1 overflow-y-auto space-y-3 mb-2 p-2 bg-black/20 rounded custom-scrollbar">
+                    <div 
+                        ref={chatContainerRef}
+                        className="flex-1 overflow-y-auto space-y-3 mb-2 p-2 bg-black/20 rounded custom-scrollbar"
+                    >
                         {messages.length === 0 && <div className="text-gray-500 text-xs text-center">Ask questions about your notes or upload files...</div>}
                         {messages.map((m, i) => (
                             <div key={i} className={m.role === 'user' ? "text-right" : "text-left"}>

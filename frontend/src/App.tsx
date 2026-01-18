@@ -173,7 +173,7 @@ function App() {
             </div>
           ))}
           {sidebarMode && (
-            <div className={`absolute right-0 top-0 bottom-0 bg-[#1e1e1e] border-l border-white/10 shadow-2xl z-40 animate-in slide-in-from-right duration-200 transition-all ${expansionMode === 'compact' ? 'w-80' :
+            <div className={`absolute right-4 top-1/2 -translate-y-1/2 h-[80vh] bg-[#1e1e1e] border border-white/10 shadow-2xl z-40 animate-in slide-in-from-right duration-200 transition-all rounded-xl overflow-hidden ${expansionMode === 'compact' ? 'w-80' :
               expansionMode === 'half' ? 'w-1/2' : 'w-full'
               }`}>
               <div className="flex flex-col h-full p-4">

@@ -88,7 +88,13 @@ export const ParticleSystem: React.FC = () => {
         // Draw
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
+        // Get color from CSS variable (hacky but works for simple update) - actually better to read once
+        // But for dynamic updates during theme switch without reload, we need to read it.
+        // Performance might be hit if we read computed style every frame. 
+        // Let's read it in the resize/init or on a loop with less frequency? 
+        // Or just assume the variable is set on body. 
+        const particleColor = getComputedStyle(document.documentElement).getPropertyValue('--particle-color').trim();
+        ctx.fillStyle = `rgba(${particleColor}, ${p.alpha})`;
         ctx.fill();
       });
 

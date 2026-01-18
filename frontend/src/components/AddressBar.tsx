@@ -25,10 +25,10 @@ export function AddressBar({ url, onNavigate, onBack, onForward, onReload, isLoa
   };
 
   return (
-    <div className="h-10 bg-[#2b2b2b] flex items-center px-4 gap-3 no-drag border-b border-black/20">
-      <div className="flex gap-1 text-gray-400">
+    <div className="h-10 bg-[var(--bg-secondary)] flex items-center px-4 gap-3 no-drag border-b border-[var(--border-color)] transition-colors duration-300">
+      <div className="flex gap-1 text-[var(--text-secondary)]">
         <motion.button 
-          whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.1)" }}
+          whileHover={{ scale: 1.1, backgroundColor: "var(--hover-bg)" }}
           whileTap={{ scale: 0.9 }}
           onClick={onBack} 
           className="p-1.5 rounded-md transition-colors"
@@ -36,7 +36,7 @@ export function AddressBar({ url, onNavigate, onBack, onForward, onReload, isLoa
           <ArrowLeft size={16} />
         </motion.button>
         <motion.button 
-          whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.1)" }}
+          whileHover={{ scale: 1.1, backgroundColor: "var(--hover-bg)" }}
           whileTap={{ scale: 0.9 }}
           onClick={onForward} 
           className="p-1.5 rounded-md transition-colors"
@@ -44,7 +44,7 @@ export function AddressBar({ url, onNavigate, onBack, onForward, onReload, isLoa
           <ArrowRight size={16} />
         </motion.button>
         <motion.button 
-          whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.1)" }}
+          whileHover={{ scale: 1.1, backgroundColor: "var(--hover-bg)" }}
           whileTap={{ scale: 0.9 }}
           onClick={onReload} 
           className="p-1.5 rounded-md transition-colors"
@@ -53,11 +53,11 @@ export function AddressBar({ url, onNavigate, onBack, onForward, onReload, isLoa
         </motion.button>
       </div>
 
-      <div className="flex-1 flex items-center bg-[#1a1a1a] rounded-lg px-3 h-8 border border-transparent focus-within:border-blue-500/50 transition-colors">
-         <ShieldCheck size={14} className="text-gray-500 mr-2" />
+      <div className="flex-1 flex items-center bg-[var(--input-bg)] rounded-lg px-3 h-8 border border-transparent focus-within:border-blue-500/50 transition-colors">
+         <ShieldCheck size={14} className="text-[var(--text-secondary)] mr-2" />
          <input 
             type="text"
-            className="flex-1 bg-transparent text-sm text-white placeholder-gray-600 focus:outline-none"
+            className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none"
             placeholder="Search or enter website name"
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}

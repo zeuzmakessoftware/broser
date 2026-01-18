@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './index.css';
 import { Sidebar } from './components/Sidebar';
@@ -28,6 +28,7 @@ function App() {
   const [tabs, setTabs] = useState<Tab[]>([
     { id: '1', title: 'Start Page', url: 'noteva://start', active: true }
   ]);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [sidebarMode, setSidebarMode] = useState<'notes' | 'chat' | 'settings' | 'research' | 'history' | null>(null);
   const [expansionMode, setExpansionMode] = useState<'compact' | 'half' | 'full'>('compact');
   const [aiResponseToProcess, setAiResponseToProcess] = useState<any>(null);
@@ -169,10 +170,22 @@ function App() {
     });
   };
 
+  const toggleTheme = () => {
+    setTheme(curr => curr === 'dark' ? 'light' : 'dark');
+  };
+
+  useEffect(() => {
+    if (theme === 'light') {
+      document.body.classList.add('light-mode');
+    } else {
+      document.body.classList.remove('light-mode');
+    }
+  }, [theme]);
+
 
 
   return (
-    <div className="flex h-screen w-screen bg-[#242424] text-white overflow-hidden font-sans">
+    <div className="flex h-screen w-screen bg-[var(--bg-primary)] text-[var(--text-primary)] overflow-hidden font-sans transition-colors duration-300">
       {(isListening || isVoiceProcessing) && <VoiceOverlay onStop={handleVoiceInteraction} isProcessing={isVoiceProcessing} />}
       <Sidebar
         isOpen={!!sidebarMode}
@@ -180,6 +193,8 @@ function App() {
         onToggle={toggleSidebar}
         onVoiceClick={handleVoiceInteraction}
         isListening={isListening}
+        currentTheme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -187,7 +202,7 @@ function App() {
             Actually TabBar is usually in the titlebar. 
             We need a top bar that contains TabBar.
         */}
-        <div className="bg-[#1a1a1a] pt-2 dragged-region">
+        <div className="bg-[var(--bg-secondary)] pt-2 dragged-region transition-colors duration-300">
           <TabBar
             tabs={tabs}
             onNewTab={handleNewTab}
@@ -205,7 +220,7 @@ function App() {
           onReload={() => { (document.getElementById('main-webview') as any)?.reload() }}
         />
 
-        <div className="flex-1 relative bg-black overflow-hidden">
+        <div className="flex-1 relative bg-[var(--bg-primary)] overflow-hidden">
           {tabs.map(tab => (
             <div key={tab.id} className={`absolute inset-0 ${tab.active ? 'block' : 'hidden'}`}>
               {tab.url === 'noteva://start' ? (
@@ -229,7 +244,7 @@ function App() {
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: 400, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className={`absolute right-4 top-1/2 -translate-y-1/2 h-[80vh] bg-[#1e1e1e] border border-white/10 shadow-2xl z-40 rounded-xl overflow-hidden ${
+                className={`absolute right-4 top-1/2 -translate-y-1/2 h-[80vh] bg-[var(--bg-tertiary)] border border-[var(--border-color)] shadow-xl z-40 rounded-xl overflow-hidden ${
                   expansionMode === 'compact' ? 'w-80' :
                   expansionMode === 'half' ? 'w-1/2' : 'w-full'
                 }`}

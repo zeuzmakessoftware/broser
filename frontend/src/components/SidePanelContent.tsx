@@ -417,20 +417,20 @@ export function SidePanelContent({
         const ExpandIcon = expansionMode === 'full' ? Minimize2 : expansionMode === 'half' ? Maximize2 : Maximize2;
 
         return (
-            <div className="flex flex-col h-full text-white">
+            <div className="flex flex-col h-full text-[var(--text-primary)]">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-3xl font-serif-title">Study</h2>
+                    <h2 className="text-3xl font-serif-title text-[var(--text-primary)]">Study</h2>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={onToggleExpand}
-                            className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
+                            className="p-1 hover:bg-[var(--hover-bg)] rounded transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                             title={expansionMode === 'full' ? "Contract" : "Expand"}
                         >
                             <ExpandIcon size={18} />
                         </button>
                         <button
                             onClick={onClose}
-                            className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
+                            className="p-1 hover:bg-[var(--hover-bg)] rounded transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                             title="Close"
                         >
                             <X size={18} />
@@ -443,7 +443,7 @@ export function SidePanelContent({
                                 <School size={12} />
                                 Study This Page
                             </button>
-                            <label className="bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white cursor-pointer px-2 py-1 rounded flex items-center gap-1 transition-colors" title="Upload Study Material">
+                            <label className="bg-[var(--input-bg)] hover:bg-[var(--hover-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer px-2 py-1 rounded flex items-center gap-1 transition-colors" title="Upload Study Material">
                                 <input type="file" className="hidden" accept=".txt,.md,.json" onChange={handleStudyFileUpload} />
                                 <Upload size={12} />
                             </label>
@@ -462,7 +462,7 @@ export function SidePanelContent({
                                 key={item.id}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => setStudyMode(item.id as any)}
-                                className="relative flex-1 p-2 rounded flex items-center justify-center gap-1 text-white transition-colors"
+                                className="relative flex-1 p-2 rounded flex items-center justify-center gap-1 text-[var(--text-primary)] transition-colors"
                             >
                                 {studyMode === item.id && (
                                     <motion.div
@@ -493,9 +493,9 @@ export function SidePanelContent({
                                 exit={{ opacity: 0, x: -20 }}
                                 transition={{ duration: 0.2 }}
                             >
-                                {notes.length === 0 && <div className="text-gray-500 text-sm">No notes found.</div>}
+                                {notes.length === 0 && <div className="text-[var(--text-secondary)] text-sm">No notes found.</div>}
                                 {notes.map((n, i) => (
-                                    <div key={i} className="bg-white/5 p-2 rounded text-sm whitespace-pre-wrap mb-2">{n.content}</div>
+                                    <div key={i} className="bg-[var(--input-bg)] p-2 rounded text-sm whitespace-pre-wrap mb-2 text-[var(--text-primary)]">{n.content}</div>
                                 ))}
                             </motion.div>
                         )}
@@ -524,13 +524,13 @@ export function SidePanelContent({
                                 className="space-y-4"
                             >
                                 {studyData.quiz.map((q: any, i: number) => (
-                                    <div key={i} className="bg-white/5 p-4 rounded text-sm">
+                                    <div key={i} className="bg-[var(--input-bg)] p-4 rounded text-sm text-[var(--text-primary)]">
                                         <h4 className="font-bold mb-2">{i + 1}. {q.question}</h4>
                                         <div className="space-y-1">
                                             {q.options.map((opt: string, optIndex: number) => {
                                                 const isSelected = quizAnswers[i] === opt;
                                                 const isCorrect = opt === q.correctAnswer;
-                                                let bgClass = "bg-white/5 hover:bg-white/10";
+                                                let bgClass = "bg-[var(--input-bg)] hover:bg-[var(--hover-bg)]";
 
                                                 if (showQuizResult) {
                                                     if (isCorrect) bgClass = "bg-green-500/20 border border-green-500";
@@ -602,20 +602,20 @@ export function SidePanelContent({
                                     onClick={() => setIsFlipped(!isFlipped)}
                                     className="w-full max-w-sm h-64 perspective-1000 cursor-pointer"
                                 >
-                                    <div className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
-                                        {/* Front */}
-                                        <div className="absolute w-full h-full bg-gradient-to-br from-purple-900 to-indigo-900 rounded-xl p-6 flex flex-col items-center justify-center text-center backface-hidden shadow-xl border border-white/10">
-                                            <h3 className="text-sm uppercase tracking-widest text-purple-300 mb-4">Term</h3>
-                                            <p className="text-xl font-bold">{studyData.flashcards[currentFlashcardIndex].front}</p>
-                                            <p className="absolute bottom-4 text-xs text-gray-400">Click to flip</p>
-                                        </div>
+                                        <div className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
+                                            {/* Front */}
+                                            <div className="absolute w-full h-full bg-[var(--bg-secondary)] rounded-xl p-6 flex flex-col items-center justify-center text-center backface-hidden shadow-xl border border-[var(--border-color)]">
+                                                <h3 className="text-sm uppercase tracking-widest text-purple-400 mb-4">Term</h3>
+                                                <p className="text-xl font-bold text-[var(--text-primary)]">{studyData.flashcards[currentFlashcardIndex].front}</p>
+                                                <p className="absolute bottom-4 text-xs text-[var(--text-secondary)]">Click to flip</p>
+                                            </div>
 
-                                        {/* Back */}
-                                        <div className="absolute w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 flex flex-col items-center justify-center text-center backface-hidden rotate-y-180 shadow-xl border border-white/10" style={{ transform: 'rotateY(180deg)' }}>
-                                            <h3 className="text-sm uppercase tracking-widest text-green-300 mb-4">Definition</h3>
-                                            <p className="text-lg">{studyData.flashcards[currentFlashcardIndex].back}</p>
-                                            <p className="absolute bottom-4 text-xs text-gray-400">Click to flip back</p>
-                                        </div>
+                                            {/* Back */}
+                                            <div className="absolute w-full h-full bg-[var(--bg-secondary)] rounded-xl p-6 flex flex-col items-center justify-center text-center backface-hidden rotate-y-180 shadow-xl border border-[var(--border-color)]" style={{ transform: 'rotateY(180deg)' }}>
+                                                <h3 className="text-sm uppercase tracking-widest text-green-400 mb-4">Definition</h3>
+                                                <p className="text-lg text-[var(--text-primary)]">{studyData.flashcards[currentFlashcardIndex].back}</p>
+                                                <p className="absolute bottom-4 text-xs text-[var(--text-secondary)]">Click to flip back</p>
+                                            </div>
                                     </div>
                                 </div>
 
@@ -627,7 +627,7 @@ export function SidePanelContent({
                                             setCurrentFlashcardIndex(prev => Math.max(0, prev - 1));
                                         }}
                                         disabled={currentFlashcardIndex === 0}
-                                        className="p-2 rounded-full bg-white/10 disabled:opacity-50 hover:bg-white/20"
+                                        className="p-2 rounded-full bg-[var(--input-bg)] disabled:opacity-50 hover:bg-[var(--hover-bg)]"
                                     >
                                         ← Prev
                                     </motion.button>
@@ -641,7 +641,7 @@ export function SidePanelContent({
                                             setCurrentFlashcardIndex(prev => Math.min(studyData.flashcards.length - 1, prev + 1));
                                         }}
                                         disabled={currentFlashcardIndex === studyData.flashcards.length - 1}
-                                        className="p-2 rounded-full bg-white/10 disabled:opacity-50 hover:bg-white/20"
+                                        className="p-2 rounded-full bg-[var(--input-bg)] disabled:opacity-50 hover:bg-[var(--hover-bg)]"
                                     >
                                         Next →
                                     </motion.button>
@@ -667,7 +667,7 @@ export function SidePanelContent({
                                         }
                                         setLoading(false);
                                     }}
-                                    className="mt-4 bg-white/10 px-4 py-2 rounded text-sm hover:bg-white/20 transition-colors"
+                                    className="mt-4 bg-[var(--input-bg)] px-4 py-2 rounded text-sm hover:bg-[var(--hover-bg)] transition-colors text-[var(--text-primary)]"
                                 >
                                     Generate More Flashcards
                                 </motion.button>
@@ -683,7 +683,7 @@ export function SidePanelContent({
         const ExpandIcon = expansionMode === 'full' ? Minimize2 : expansionMode === 'half' ? Maximize2 : Maximize2;
 
         return (
-            <div className="flex flex-col h-full text-white overflow-hidden">
+            <div className="flex flex-col h-full text-[var(--text-primary)] overflow-hidden">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-3xl font-serif-title">AI Assistant</h2>
                     <div className="flex items-center gap-2">
@@ -691,7 +691,7 @@ export function SidePanelContent({
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             onClick={onToggleExpand}
-                            className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
+                            className="p-1 hover:bg-[var(--hover-bg)] rounded transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                             title={expansionMode === 'full' ? "Contract" : "Expand"}
                         >
                             <ExpandIcon size={18} />
@@ -700,7 +700,7 @@ export function SidePanelContent({
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             onClick={onClose}
-                            className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
+                            className="p-1 hover:bg-[var(--hover-bg)] rounded transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                             title="Close"
                         >
                             <X size={18} />
@@ -712,9 +712,9 @@ export function SidePanelContent({
                 <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                     <div
                         ref={chatContainerRef}
-                        className="flex-1 overflow-y-auto space-y-3 mb-2 p-2 bg-black/20 rounded custom-scrollbar"
+                        className="flex-1 overflow-y-auto space-y-3 mb-2 p-2 bg-[var(--bg-secondary)] rounded custom-scrollbar"
                     >
-                        {messages.length === 0 && <div className="text-gray-500 text-xs text-center">Ask questions about your notes or upload files...</div>}
+                        {messages.length === 0 && <div className="text-[var(--text-secondary)] text-xs text-center">Ask questions about your notes or upload files...</div>}
                         {messages.map((m, i) => (
                             <motion.div 
                                 key={i} 
@@ -725,14 +725,14 @@ export function SidePanelContent({
                             >
                                 {m.role === 'assistant' && m.toolCall && (
                                     <div className="inline-block w-full max-w-[90%] text-left mt-2 mb-2">
-                                        <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 shadow-lg">
+                                        <div className="bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-lg p-3 shadow-lg">
                                             <div className="flex items-center gap-2 mb-2 text-yellow-400">
                                                 <Sparkles size={16} />
                                                 <span className="font-bold text-xs uppercase tracking-wider">
                                                     {m.toolCall.type === 'NAVIGATE' ? 'Navigation Request' : 'Research Request'}
                                                 </span>
                                             </div>
-                                            <p className="text-sm mb-3 text-gray-300">
+                                            <p className="text-sm mb-3 text-[var(--text-secondary)]">
                                                 {m.toolCall.type === 'NAVIGATE'
                                                     ? `I'd like to open ${m.toolCall.payload.url}`
                                                     : `I'd like to start researching: ${m.toolCall.payload.topic}`
@@ -775,11 +775,11 @@ export function SidePanelContent({
 
                                 {m.role === 'assistant' && m.isSummary ? (
                                     <div className="inline-block w-full max-w-[95%] text-left mt-2 mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                        <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 rounded-xl overflow-hidden shadow-xl backdrop-blur-sm">
-                                            <div className="flex items-center justify-between px-3 py-2 bg-indigo-500/20 border-b border-indigo-500/20">
+                                        <div className="bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-xl overflow-hidden shadow-xl backdrop-blur-sm">
+                                            <div className="flex items-center justify-between px-3 py-2 bg-[var(--hover-bg)] border-b border-[var(--border-color)]">
                                                 <div className="flex items-center gap-2">
-                                                    <Sparkles size={14} className="text-indigo-400" />
-                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-300">AI Summary</span>
+                                                    <Sparkles size={14} className="text-blue-500" />
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500">AI Summary</span>
                                                 </div>
                                                 <motion.button
                                                     whileTap={{ scale: 0.9 }}
@@ -788,13 +788,13 @@ export function SidePanelContent({
                                                         setCopiedId(i);
                                                         setTimeout(() => setCopiedId(null), 2000);
                                                     }}
-                                                    className="p-1 hover:bg-white/10 rounded transition-colors text-indigo-400"
+                                                    className="p-1 hover:bg-[var(--hover-bg)] rounded transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                                                 >
                                                     {copiedId === i ? <Check size={12} /> : <Copy size={12} />}
                                                 </motion.button>
                                             </div>
                                             <div className="p-3">
-                                                <div className="text-sm leading-relaxed text-gray-100 markdown-content">
+                                                <div className="text-sm leading-relaxed text-[var(--text-primary)] markdown-content">
                                                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                         {(m as any).content}
                                                     </ReactMarkdown>
@@ -804,7 +804,7 @@ export function SidePanelContent({
                                     </div>
                                 ) : (
                                     !m.toolCall && (
-                                        <div className={`inline-block p-2 rounded-lg text-sm max-w-[90%] markdown-content ${m.role === 'user' ? 'bg-blue-600' : 'bg-gray-700'}`}>
+                                        <div className={`inline-block p-2 rounded-lg text-sm max-w-[90%] markdown-content ${m.role === 'user' ? 'bg-blue-600' : 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'}`}>
                                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                 {m.content}
                                             </ReactMarkdown>
@@ -818,14 +818,14 @@ export function SidePanelContent({
                 </div>
 
                 <div className="flex gap-2 mb-2">
-                    <label className="cursor-pointer bg-white/10 p-1.5 rounded hover:bg-white/20 text-gray-400 hover:text-white transition-colors" title="Upload File">
+                    <label className="cursor-pointer bg-[var(--input-bg)] p-1.5 rounded hover:bg-[var(--hover-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors" title="Upload File">
                         <input type="file" className="hidden" onChange={handleFileUpload} />
                         <Upload size={16} />
                     </label>
-                    <motion.button whileTap={{ scale: 0.9 }} onClick={handleSummarizePage} className="bg-white/10 p-1.5 rounded hover:bg-white/20 text-gray-400 hover:text-white transition-colors" title="Summarize Page">
+                    <motion.button whileTap={{ scale: 0.9 }} onClick={handleSummarizePage} className="bg-[var(--input-bg)] p-1.5 rounded hover:bg-[var(--hover-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors" title="Summarize Page">
                         <Globe size={16} />
                     </motion.button>
-                    <motion.button whileTap={{ scale: 0.9 }} onClick={handleSummarizeVideo} className="bg-white/10 p-1.5 rounded hover:bg-white/20 text-gray-400 hover:text-white transition-colors" title="Summarize Video">
+                    <motion.button whileTap={{ scale: 0.9 }} onClick={handleSummarizeVideo} className="bg-[var(--input-bg)] p-1.5 rounded hover:bg-[var(--hover-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors" title="Summarize Video">
                         <Youtube size={16} />
                     </motion.button>
                 </div>
@@ -840,7 +840,7 @@ export function SidePanelContent({
 
                     <VoiceRecorder onRecordingComplete={handleVoiceRecording} isProcessing={false} />
                     <input
-                        className="flex-1 bg-white/10 border border-white/10 rounded px-2 py-1 text-sm focus:outline-none"
+                        className="flex-1 bg-[var(--input-bg)] border border-[var(--border-color)] rounded px-2 py-1 text-sm focus:outline-none text-[var(--text-primary)]"
                         value={input}
                         onChange={e => setInput(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && sendMessage()}
@@ -856,10 +856,10 @@ export function SidePanelContent({
     if (mode === 'history') {
         const ExpandIcon = expansionMode === 'full' ? Minimize2 : expansionMode === 'half' ? Maximize2 : Maximize2;
         return (
-            <div className="flex flex-col h-full text-white overflow-hidden">
+            <div className="flex flex-col h-full text-[var(--text-primary)] overflow-hidden">
                 <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center gap-2">
-                        <Clock size={18} className="text-yellow-500" />
+                        <Clock size={18} className="text-[var(--text-primary)]" />
                         <h2 className="text-3xl font-serif-title">History</h2>
                     </div>
                     <div className="flex items-center gap-2">
@@ -885,24 +885,24 @@ export function SidePanelContent({
                 </div>
 
                 <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-1">
-                    {loading && history.length === 0 && <div className="text-center p-4 text-gray-400">Loading history...</div>}
-                    {!loading && history.length === 0 && <div className="text-center p-4 text-gray-500">No history yet.</div>}
+                    {loading && history.length === 0 && <div className="text-center p-4 text-[var(--text-secondary)]">Loading history...</div>}
+                    {!loading && history.length === 0 && <div className="text-center p-4 text-[var(--text-secondary)]">No history yet.</div>}
                     {history.map((h, i) => (
                         <div
                             key={i}
                             onClick={() => onNavigate?.(h.url)}
-                            className="bg-white/5 p-3 rounded-lg hover:bg-white/10 cursor-pointer transition-all border border-transparent hover:border-white/10 group"
+                            className="bg-[var(--input-bg)] p-3 rounded-lg hover:bg-[var(--hover-bg)] cursor-pointer transition-all border border-transparent hover:border-[var(--border-color)] group"
                         >
                             <div className="flex justify-between items-start gap-2">
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="text-sm font-medium truncate text-gray-200 group-hover:text-white">{h.title || 'Untitled Page'}</h4>
-                                    <p className="text-xs text-gray-500 truncate">{h.url}</p>
+                                    <h4 className="text-sm font-medium truncate text-[var(--text-primary)]">{h.title || 'Untitled Page'}</h4>
+                                    <p className="text-xs text-[var(--text-secondary)] truncate">{h.url}</p>
                                 </div>
-                                <button className="text-gray-600 hover:text-white transition-colors">
+                                <button className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                                     <ExternalLink size={14} />
                                 </button>
                             </div>
-                            <div className="mt-2 text-[10px] text-gray-600 font-mono">
+                            <div className="mt-2 text-[10px] text-[var(--text-secondary)] font-mono">
                                 {new Date(h.timestamp).toLocaleString()}
                             </div>
                         </div>

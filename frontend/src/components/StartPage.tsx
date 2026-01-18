@@ -47,7 +47,7 @@ export function StartPage({ onNavigate, onNewTab, onVoiceClick }: StartPageProps
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen w-full bg-[#1a1a1a] text-white overflow-hidden relative selection:bg-purple-500/30">
+    <div className="flex flex-col items-center justify-center min-h-screen w-full bg-[var(--bg-primary)] text-[var(--text-primary)] overflow-hidden relative selection:bg-purple-500/30 transition-colors duration-300">
       {/* Background Gradients & Particles */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <motion.div 
@@ -69,17 +69,17 @@ export function StartPage({ onNavigate, onNewTab, onVoiceClick }: StartPageProps
       >
         {/* Hero Section */}
         <motion.div variants={item} className="mb-12 text-center">
-          <h1 className="text-6xl md:text-8xl font-black mb-4 tracking-tighter bg-gradient-to-br from-white via-gray-200 to-gray-500 bg-clip-text text-transparent drop-shadow-lg">
+          <h1 className="text-6xl md:text-8xl font-black mb-4 tracking-tighter text-[var(--text-primary)] drop-shadow-lg">
             Noteva
           </h1>
-          <p className="text-lg md:text-xl text-gray-400 font-light tracking-wide">
+          <p className="text-lg md:text-xl text-[var(--text-secondary)] font-light tracking-wide">
             The browser for <span className="text-purple-400 font-medium">thinkers</span>.
           </p>
         </motion.div>
 
         {/* Search Bar */}
         <motion.form variants={item} onSubmit={handleSearch} className="w-full relative group">
-          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-purple-400 transition-colors">
+          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-[var(--text-secondary)] group-focus-within:text-purple-400 transition-colors">
             <Search size={22} className="stroke-[2.5]" />
           </div>
           <input
@@ -88,7 +88,7 @@ export function StartPage({ onNavigate, onNewTab, onVoiceClick }: StartPageProps
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search or enter URL..."
             autoFocus
-            className="w-full py-4 pl-14 pr-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl text-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:bg-white/10 transition-all shadow-lg hover:shadow-purple-500/10 hover:border-white/20"
+            className="w-full py-4 pl-14 pr-6 rounded-2xl bg-[var(--input-bg)] border border-[var(--border-color)] backdrop-blur-xl text-lg text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:bg-[var(--input-bg)] transition-all shadow-lg hover:shadow-purple-500/10 hover:border-[var(--hover-bg)]"
           />
         </motion.form>
 
@@ -110,12 +110,12 @@ export function StartPage({ onNavigate, onNewTab, onVoiceClick }: StartPageProps
                   onNavigate(link.url);
                 }
               }}
-              className="flex flex-col items-center group p-4 rounded-xl hover:bg-white/5 transition-colors"
+              className="flex flex-col items-center group p-4 rounded-xl hover:bg-[var(--hover-bg)] transition-colors"
             >
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/5 mb-3 group-hover:bg-purple-500/20 group-hover:border-purple-500/30 group-hover:text-purple-400 transition-all shadow-md group-hover:shadow-purple-500/20">
+              <div className="p-4 rounded-2xl bg-[var(--input-bg)] border border-[var(--border-color)] mb-3 group-hover:bg-purple-500/20 group-hover:border-purple-500/30 group-hover:text-purple-400 transition-all shadow-md group-hover:shadow-purple-500/20">
                 <link.icon size={26} className="stroke-[1.5]" />
               </div>
-              <span className="text-sm font-medium text-gray-400 group-hover:text-white transition-colors">
+              <span className="text-sm font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">
                 {link.label}
               </span>
             </motion.button>
@@ -123,7 +123,7 @@ export function StartPage({ onNavigate, onNewTab, onVoiceClick }: StartPageProps
         </motion.div>
       </motion.div>
 
-      <div className="absolute bottom-8 text-xs text-gray-600 font-mono tracking-widest uppercase">
+      <div className="absolute bottom-8 text-xs text-[var(--text-secondary)] font-mono tracking-widest uppercase">
         Designed for Focus
       </div>
     </div>

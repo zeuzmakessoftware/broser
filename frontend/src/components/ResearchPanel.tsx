@@ -136,20 +136,20 @@ export function ResearchPanel({
     });
 
     return (
-        <div className="flex flex-col h-full text-white">
+        <div className="flex flex-col h-full text-[var(--text-primary)]">
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-3xl font-serif-title">Research</h2>
                 <div className="flex items-center gap-2">
                     <button
                         onClick={onToggleExpand}
-                        className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
+                        className="p-1 hover:bg-[var(--hover-bg)] rounded transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                         title={expansionMode === 'full' ? "Contract" : "Expand"}
                     >
                         {expansionMode === 'full' ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
                     </button>
                     <button
                         onClick={onClose}
-                        className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
+                        className="p-1 hover:bg-[var(--hover-bg)] rounded transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                         title="Close"
                     >
                         <X size={18} />
@@ -161,7 +161,7 @@ export function ResearchPanel({
             <div className="mb-4 space-y-2">
                 <div className="flex gap-2">
                     <input
-                        className="flex-1 bg-white/10 border border-white/10 rounded px-2 py-1 text-sm outline-none"
+                        className="flex-1 bg-[var(--input-bg)] border border-[var(--border-color)] rounded px-2 py-1 text-sm outline-none text-[var(--text-primary)]"
                         placeholder="New Topic..."
                         value={newTopic}
                         onChange={e => setNewTopic(e.target.value)}
@@ -246,16 +246,16 @@ export function ResearchPanel({
                     </div>
 
                     <div className="relative mb-2">
-                        <Search size={14} className="absolute left-2 top-2 text-gray-400" />
+                        <Search size={14} className="absolute left-2 top-2 text-[var(--text-secondary)]" />
                         <input
-                            className="w-full bg-white/5 border border-white/10 rounded pl-8 py-1 text-sm outline-none"
+                            className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded pl-8 py-1 text-sm outline-none text-[var(--text-primary)]"
                             placeholder="Search..."
                             value={filter}
                             onChange={e => setFilter(e.target.value)}
                         />
                     </div>
 
-                    <div className="flex border-b border-white/10 mb-2">
+                    <div className="flex border-b border-[var(--border-color)] mb-2">
                         {['sources', 'notes', 'citations'].map(t => {
                             const isActive = tab === t;
                             return (
@@ -265,7 +265,7 @@ export function ResearchPanel({
                                     onClick={() => setTab(t as any)}
                                     className={clsx(
                                         "relative flex-1 pb-2 text-sm capitalize transition-colors outline-none",
-                                        isActive ? "text-blue-400" : "text-gray-400 hover:text-white"
+                                        isActive ? "text-blue-500 font-medium" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                                     )}
                                 >
                                     {t}
@@ -292,13 +292,13 @@ export function ResearchPanel({
                                 className="space-y-2"
                             >
                                 {filteredList.map((item: any, i: number) => (
-                                    <div key={i} className="bg-white/5 p-2 rounded text-xs break-words hover:bg-white/10 cursor-pointer">
+                                    <div key={i} className="bg-[var(--bg-secondary)] p-2 rounded text-xs break-words hover:bg-[var(--hover-bg)] cursor-pointer border border-transparent hover:border-[var(--border-color)]">
                                         {tab === 'sources' && (
                                             <>
-                                                <div className="font-bold mb-1">{item.title || 'Untitled'}</div>
-                                                <div className="text-gray-400 truncate mb-1">{item.url}</div>
+                                                <div className="font-bold mb-1 text-[var(--text-primary)]">{item.title || 'Untitled'}</div>
+                                                <div className="text-[var(--text-secondary)] truncate mb-1">{item.url}</div>
                                                 {item.mlaCitation && (
-                                                    <div className="text-xs text-gray-500 font-serif border-l-2 border-white/20 pl-2 mt-1">
+                                                    <div className="text-xs text-[var(--text-tertiary)] font-serif border-l-2 border-[var(--border-color)] pl-2 mt-1">
                                                         {item.mlaCitation}
                                                     </div>
                                                 )}
@@ -311,13 +311,13 @@ export function ResearchPanel({
                                         )}
                                         {tab === 'citations' && (
                                             <>
-                                                <div className="italic mb-1">"{item.content}"</div>
-                                                <div className="text-gray-500">{item.sourceUrl}</div>
+                                                <div className="italic mb-1 text-[var(--text-primary)]">"{item.content}"</div>
+                                                <div className="text-[var(--text-secondary)]">{item.sourceUrl}</div>
                                             </>
                                         )}
                                     </div>
                                 ))}
-                                {filteredList.length === 0 && <div className="text-gray-500 text-center text-xs mt-4">No items found</div>}
+                                {filteredList.length === 0 && <div className="text-[var(--text-secondary)] text-center text-xs mt-4">No items found</div>}
                             </motion.div>
                         </AnimatePresence>
                     </div>

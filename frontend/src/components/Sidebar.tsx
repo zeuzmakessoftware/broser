@@ -1,6 +1,6 @@
-import { BookOpen, MessageSquare, Settings, Mic, Notebook, Clock } from 'lucide-react';
+import { BookOpen, MessageSquare, Settings, Mic, Notebook, Clock, Sun, Moon } from 'lucide-react';
 import { clsx } from 'clsx';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -8,11 +8,13 @@ interface SidebarProps {
   onToggle: (mode: 'notes' | 'chat' | 'settings' | 'research' | 'history') => void;
   onVoiceClick: () => void;
   isListening?: boolean;
+  currentTheme: 'dark' | 'light';
+  onToggleTheme: () => void;
 }
 
-export function Sidebar({ isOpen: _isOpen, activeMode, onToggle, onVoiceClick, isListening }: SidebarProps) {
+export function Sidebar({ isOpen: _isOpen, activeMode, onToggle, onVoiceClick, isListening, currentTheme, onToggleTheme }: SidebarProps) {
   return (
-    <div className="w-22 bg-[#1a1a1a] border-r border-white/5 flex flex-col items-center py-4 gap-4 z-50 dragged-region">
+    <div className="w-22 bg-[var(--bg-sidebar)] border-r border-[var(--border-color)] flex flex-col items-center py-4 gap-4 z-50 dragged-region transition-colors duration-300">
       {/* App Logo / Dashboard Home */}
       {/* Mac Traffic Lights Spacing */}
       <div className="h-6 w-full" />
@@ -25,7 +27,7 @@ export function Sidebar({ isOpen: _isOpen, activeMode, onToggle, onVoiceClick, i
         onClick={() => onToggle('research')}
         className={clsx(
           "p-2 rounded-lg transition-all duration-200 group relative no-drag",
-          activeMode === 'research' ? "bg-white/10 text-white" : "text-gray-400 hover:text-white hover:bg-white/5"
+          activeMode === 'research' ? "bg-[var(--hover-bg)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)]"
         )}
         title="Research"
       >
@@ -45,7 +47,7 @@ export function Sidebar({ isOpen: _isOpen, activeMode, onToggle, onVoiceClick, i
         onClick={() => onToggle('notes')}
         className={clsx(
           "p-2 rounded-lg transition-all duration-200 group relative no-drag",
-          activeMode === 'notes' ? "bg-white/10 text-white" : "text-gray-400 hover:text-white hover:bg-white/5"
+          activeMode === 'notes' ? "bg-[var(--hover-bg)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)]"
         )}
         title="Notes"
       >
@@ -65,7 +67,7 @@ export function Sidebar({ isOpen: _isOpen, activeMode, onToggle, onVoiceClick, i
         onClick={() => onToggle('chat')}
         className={clsx(
           "p-2 rounded-lg transition-all duration-200 group relative no-drag",
-          activeMode === 'chat' ? "bg-white/10 text-white" : "text-gray-400 hover:text-white hover:bg-white/5"
+          activeMode === 'chat' ? "bg-[var(--hover-bg)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)]"
         )}
         title="AI Chat"
       >
@@ -85,7 +87,7 @@ export function Sidebar({ isOpen: _isOpen, activeMode, onToggle, onVoiceClick, i
         onClick={() => onToggle('history')}
         className={clsx(
           "p-2 rounded-lg transition-all duration-200 group relative no-drag",
-          activeMode === 'history' ? "bg-white/10 text-white" : "text-gray-400 hover:text-white hover:bg-white/5"
+          activeMode === 'history' ? "bg-[var(--hover-bg)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)]"
         )}
         title="History"
       >
@@ -104,8 +106,8 @@ export function Sidebar({ isOpen: _isOpen, activeMode, onToggle, onVoiceClick, i
         whileTap={{ scale: 0.9 }}
         onClick={onVoiceClick}
         className={clsx(
-          "p-2 rounded-full transition-all duration-300 mt-auto mb-4 border border-transparent hover:border-white/10 no-drag",
-          isListening ? "bg-red-500/20 text-red-500 animate-pulse" : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white"
+          "p-2 rounded-full transition-all duration-300 mt-auto mb-4 border border-transparent hover:border-[var(--border-color)] no-drag",
+          isListening ? "bg-red-500/20 text-red-500 animate-pulse" : "bg-[var(--input-bg)] text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--text-primary)]"
         )}
         title="Voice Assistant"
       >
@@ -115,10 +117,30 @@ export function Sidebar({ isOpen: _isOpen, activeMode, onToggle, onVoiceClick, i
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.9 }}
+        onClick={onToggleTheme}
+        className="p-2 rounded-lg transition-all duration-200 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] no-drag relative"
+        title={currentTheme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+      >
+        <AnimatePresence mode='wait' initial={false}>
+          <motion.div
+            key={currentTheme}
+            initial={{ y: -20, opacity: 0, rotate: -90 }}
+            animate={{ y: 0, opacity: 1, rotate: 0 }}
+            exit={{ y: 20, opacity: 0, rotate: 90 }}
+            transition={{ duration: 0.2 }}
+          >
+            {currentTheme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          </motion.div>
+        </AnimatePresence>
+      </motion.button>
+
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.9 }}
         onClick={() => onToggle('settings')}
         className={clsx(
           "p-2 rounded-lg transition-all duration-200 no-drag",
-          activeMode === 'settings' ? "bg-white/10 text-white" : "text-gray-400 hover:text-white hover:bg-white/5"
+          activeMode === 'settings' ? "bg-[var(--hover-bg)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)]"
         )}
         title="Settings"
       >

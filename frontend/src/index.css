@@ -14,13 +14,48 @@
   font-weight: 400;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+
+  /* Dark Mode (Default) Variables */
+  --bg-primary: #242424;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #1e1e1e;
+  --bg-sidebar: #1a1a1a;
+  --text-primary: rgba(255, 255, 255, 0.87);
+  --text-secondary: #9ca3af;
+  /* gray-400 */
+  --border-color: rgba(255, 255, 255, 0.1);
+  --input-bg: rgba(255, 255, 255, 0.05);
+  --hover-bg: rgba(255, 255, 255, 0.1);
+  --particle-color: 255, 255, 255;
+  /* RGB for rgba usage */
+
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.light-mode {
+  /* Light Pink Mode Variables */
+  --bg-primary: #fff0f5;
+  /* Lavender Blush */
+  --bg-secondary: #ffe4e1;
+  /* Misty Rose */
+  --bg-tertiary: #fff5ee;
+  /* Seashell */
+  --bg-sidebar: #ffe4e1;
+  --text-primary: #0b0b0b;
+  --text-secondary: #6b6b6b;
+  --border-color: rgba(0, 0, 0, 0.1);
+  --input-bg: rgba(255, 255, 255, 0.6);
+  --hover-bg: rgba(0, 0, 0, 0.05);
+  --particle-color: 74, 74, 74;
+  /* Dark gray for light mode */
+
+  color-scheme: light;
 }
 
 body {
@@ -29,6 +64,16 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+
+  /* Global Transition */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Apply transitions to all elements that use the variables */
+*,
+*::before,
+*::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 /* Custom 3D Transform Utilities */

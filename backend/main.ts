@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, session, systemPreferences, Menu, MenuItem, WebContents, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, session, systemPreferences, Menu, MenuItem, WebContents, shell, nativeImage } from 'electron';
 import path from 'path';
 import connectDB from './db';
 
@@ -486,6 +486,14 @@ app.whenReady().then(() => {
 
   createWindow();
   createMenu();
+
+  // Set Dock Icon (macOS)
+  if (process.platform === 'darwin') {
+    const iconPath = path.join(__dirname, '../frontend/public/swagscg.png');
+    console.log('Setting dock icon from:', iconPath);
+    const image = nativeImage.createFromPath(iconPath);
+    app.dock.setIcon(image);
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

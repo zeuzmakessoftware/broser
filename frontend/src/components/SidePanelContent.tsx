@@ -1031,5 +1031,5 @@ export function SidePanelContent({
         return <ResearchPanel expansionMode={expansionMode} onToggleExpand={onToggleExpand} onOpenTabs={onOpenTabs} onClose={onClose} initialContext={researchContext} />;
     }
 
-    return <div className="text-white">Settings</div>;
+    return <div className="text-white font-serif-title text-3xl">no settings its already perfect</div>;
 }

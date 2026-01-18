@@ -20,7 +20,11 @@ const BROWSER_API = {
     generateStudyMaterials: (content: string) => ipcRenderer.invoke('ai:generate-study-materials', { content }),
     generateMoreQuestions: (content: string, existingQuestions: any[]) => ipcRenderer.invoke('ai:generate-more-quiz', { content, existingQuestions }),
     generateMoreFlashcards: (content: string, existingFlashcards: any[]) => ipcRenderer.invoke('ai:generate-more-flashcards', { content, existingFlashcards }),
-    analyzeSource: (content: string, topic: string) => ipcRenderer.invoke('ai:analyze-source', { content, topic })
+    analyzeSource: (content: string, topic: string) => ipcRenderer.invoke('ai:analyze-source', { content, topic }),
+    onAskAI: (callback: (text: string) => void) => {
+         ipcRenderer.on('ai:ask-selection', (_, text) => callback(text));
+         return () => ipcRenderer.removeAllListeners('ai:ask-selection');
+    }
   },
 
   // Voice Services
@@ -39,6 +43,14 @@ const BROWSER_API = {
     saveNote: (content: string, workspaceId?: string) => ipcRenderer.invoke('db:save-note', { content, workspaceId }),
     getHistory: () => ipcRenderer.invoke('db:get-history'),
     saveHistory: (url: string, title: string) => ipcRenderer.invoke('db:save-history', { url, title })
+  },
+
+  // Tabs
+  tabs: {
+    onOpenNewTab: (callback: (url: string) => void) => {
+        ipcRenderer.on('tabs:open-new', (_, url) => callback(url));
+        return () => ipcRenderer.removeAllListeners('tabs:open-new');
+    }
   }
 };
 

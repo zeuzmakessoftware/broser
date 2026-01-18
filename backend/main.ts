@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, session, systemPreferences } from 'electron';
+import { app, BrowserWindow, ipcMain, session, systemPreferences, Menu, MenuItem, WebContents } from 'electron';
 import path from 'path';
 import connectDB from './db';
 
@@ -362,6 +362,107 @@ app.whenReady().then(() => {
 
     askForMediaAccess();
   }
+
+  // Handle Context Menu for Webviews
+  app.on('web-contents-created', (event, contents) => {
+    // Only attach to webviews (type might need checking or we just check if it's NOT the main window)
+    // The main window also has webContents, but usually we want this for the browser view.
+    // However, it doesn't hurt to have it on the app UI too, but typically we want standard browser context menu for webviews.
+    
+    // Check if this is a webview (guest)
+    if (contents.getType() === 'webview') {
+      contents.on('context-menu', (event, params) => {
+        const menu = new Menu();
+
+        // Navigation
+        if (contents.canGoBack()) {
+          menu.append(new MenuItem({ label: 'Back', click: () => contents.goBack() }));
+        } else {
+             menu.append(new MenuItem({ label: 'Back', enabled: false }));
+        }
+
+        if (contents.canGoForward()) {
+           menu.append(new MenuItem({ label: 'Forward', click: () => contents.goForward() }));
+        } else {
+           menu.append(new MenuItem({ label: 'Forward', enabled: false }));
+        }
+
+        menu.append(new MenuItem({ label: 'Reload', click: () => contents.reload() }));
+        
+        menu.append(new MenuItem({ type: 'separator' }));
+
+        // Links
+        if (params.linkURL) {
+          menu.append(new MenuItem({
+            label: 'Open Link in New Tab',
+            click: () => {
+               // Send to main window to handle new tab creation
+               if (global.mainWindow) {
+                 global.mainWindow.webContents.send('tabs:open-new', params.linkURL);
+               }
+            }
+          }));
+          menu.append(new MenuItem({ type: 'separator' }));
+          
+           menu.append(new MenuItem({
+            label: 'Copy Link Address',
+            click: () => {
+               const clipboard = require('electron').clipboard;
+               clipboard.writeText(params.linkURL);
+            }
+          }));
+           menu.append(new MenuItem({ type: 'separator' }));
+        }
+
+        // Images
+        if (params.hasImageContents) {
+           menu.append(new MenuItem({
+            label: 'Save Image As...',
+            click: () => contents.downloadURL(params.srcURL)
+          }));
+           menu.append(new MenuItem({
+             label: 'Copy Image Address',
+             click: () => {
+               const clipboard = require('electron').clipboard;
+               clipboard.writeText(params.srcURL);
+             }
+           }));
+           menu.append(new MenuItem({ type: 'separator' }));
+        }
+
+        // Editing
+        menu.append(new MenuItem({ role: 'cut' }));
+        menu.append(new MenuItem({ role: 'copy' }));
+        menu.append(new MenuItem({ role: 'paste' }));
+        menu.append(new MenuItem({ role: 'selectAll' }));
+        
+        // Selection Actions
+        if (params.selectionText) {
+             menu.append(new MenuItem({ type: 'separator' }));
+             menu.append(new MenuItem({
+                 label: 'Ask AI',
+                 click: () => {
+                     if (global.mainWindow) {
+                         global.mainWindow.webContents.send('ai:ask-selection', params.selectionText);
+                     }
+                 }
+             }));
+        }
+        
+        menu.append(new MenuItem({ type: 'separator' }));
+
+        // Inspector
+        menu.append(new MenuItem({
+          label: 'Inspect Element',
+          click: () => {
+            contents.inspectElement(params.x, params.y);
+          }
+        }));
+
+        menu.popup();
+      });
+    }
+  });
 
   // Window control handlers (From Stash)
   ipcMain.on('window-minimize', () => {

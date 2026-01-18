@@ -17,6 +17,7 @@ interface BrowserAPI {
         generateMoreQuestions: (content: string, existingQuestions: any[]) => Promise<{ quiz: any[] }>;
         generateMoreFlashcards: (content: string, existingFlashcards: any[]) => Promise<{ flashcards: any[] }>;
         analyzeSource: (content: string, topic: string) => Promise<{ tag: string; summary: string }>;
+        onAskAI: (callback: (text: string) => void) => (() => void);
     };
     voice: {
         speak: (text: string) => Promise<void>;
@@ -38,6 +39,9 @@ interface BrowserAPI {
         saveNote: (content: string, workspaceId?: string) => Promise<any>;
         getHistory: () => Promise<any[]>;
         saveHistory: (url: string, title: string) => Promise<any>;
+    };
+    tabs?: {
+        onOpenNewTab: (callback: (url: string) => void) => (() => void);
     };
 }
 

@@ -50,6 +50,8 @@ export const processPrompt = async (input: string | { audio?: string; context?: 
             };
         } else if (input.context) {
             userPart = { text: `Context: ${JSON.stringify(input.context)}\nUser: ${input.text || "Process context"}` };
+        } else if (input.text) {
+            userPart = { text: input.text };
         }
 
         const chat = model.startChat({

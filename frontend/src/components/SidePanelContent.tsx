@@ -33,7 +33,9 @@ export function SidePanelContent({
     onResponseProcessed,
     onSwitchMode,
     researchContext,
-    onSetResearchContext
+    onSetResearchContext,
+    initialChatQuery,
+    onClearInitialChatQuery
 }: {
     mode: 'notes' | 'chat' | 'settings' | 'research' | 'history',
     expansionMode?: 'compact' | 'half' | 'full',
@@ -45,7 +47,9 @@ export function SidePanelContent({
     onResponseProcessed?: () => void,
     onSwitchMode?: (mode: 'notes' | 'chat' | 'settings' | 'research' | 'history' | null) => void,
     researchContext?: any,
-    onSetResearchContext?: (ctx: any) => void
+    onSetResearchContext?: (ctx: any) => void,
+    initialChatQuery?: string | null,
+    onClearInitialChatQuery?: () => void
 }) {
     const api = useBrowserAPI();
     const [notes, setNotes] = useState<any[]>([]);
@@ -61,6 +65,14 @@ export function SidePanelContent({
     const [isPlayingAudio, setIsPlayingAudio] = useState(false);
     const [captionText, setCaptionText] = useState('');
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    
+    // Handle Initial Query (from Ask AI context menu)
+    useEffect(() => {
+        if (initialChatQuery && onClearInitialChatQuery) {
+            setInput(initialChatQuery);
+            onClearInitialChatQuery();
+        }
+    }, [initialChatQuery, onClearInitialChatQuery]);
 
 
     // We also store tool calls in messages to show history, but pendingToolCall tracks active modal/blocking state if we wanted that (or just rely on message state)

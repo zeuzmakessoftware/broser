@@ -34,6 +34,7 @@ function App() {
   const [aiResponseToProcess, setAiResponseToProcess] = useState<any>(null);
   const [researchContext, setResearchContext] = useState<{ topic?: string; workspaceId?: string; queries?: string[] } | null>(null);
   const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
+  const [initialChatQuery, setInitialChatQuery] = useState<string | null>(null);
 
   const handleVoiceData = async (base64Audio: string) => {
     // Ideally show a spinner or "Processing..." state
@@ -87,11 +88,11 @@ function App() {
 
   const activeTab = tabs.find(t => t.active) || tabs[0];
 
-  const handleNewTab = () => {
+  const handleNewTab = (url?: string) => {
     const newTab: Tab = {
       id: Date.now().toString(),
-      title: 'Start Page',
-      url: 'noteva://start',
+      title: url ? url : 'Start Page',
+      url: url ? url : 'noteva://start',
       active: true
     };
     setTabs(prev => prev.map(t => ({ ...t, active: false })).concat(newTab));
@@ -174,6 +175,7 @@ function App() {
     setTheme(curr => curr === 'dark' ? 'light' : 'dark');
   };
 
+
   useEffect(() => {
     if (theme === 'light') {
       document.body.classList.add('light-mode');
@@ -181,6 +183,23 @@ function App() {
       document.body.classList.remove('light-mode');
     }
   }, [theme]);
+
+  useEffect(() => {
+    // Listen for "Open Link in New Tab" events from main process
+    const cleanup = api.tabs?.onOpenNewTab((url) => {
+      handleNewTab(url);
+    });
+    return () => cleanup && cleanup();
+  }, [api]);
+
+  useEffect(() => {
+    // Listen for "Ask AI" events
+    const cleanup = api.ai?.onAskAI((text) => {
+        setInitialChatQuery(text);
+        setSidebarMode('chat');
+    });
+    return () => cleanup && cleanup();
+  }, [api]);
 
 
 
@@ -205,7 +224,7 @@ function App() {
         <div className="bg-[var(--bg-secondary)] pt-2 dragged-region transition-colors duration-300">
           <TabBar
             tabs={tabs}
-            onNewTab={handleNewTab}
+            onNewTab={() => handleNewTab()}
             onSwitchTab={handleSwitchTab}
             onCloseTab={handleCloseTab}
             className="pl-2"
@@ -224,7 +243,7 @@ function App() {
           {tabs.map(tab => (
             <div key={tab.id} className={`absolute inset-0 ${tab.active ? 'block' : 'hidden'}`}>
               {tab.url === 'noteva://start' ? (
-                <StartPage onNavigate={handleNavigate} onNewTab={handleNewTab} onVoiceClick={handleVoiceInteraction} />
+                <StartPage onNavigate={handleNavigate} onNewTab={() => handleNewTab()} onVoiceClick={handleVoiceInteraction} />
               ) : (
                 <webview
                   id={tab.active ? 'main-webview' : undefined}
@@ -260,6 +279,8 @@ function App() {
                     onResponseProcessed={() => setAiResponseToProcess(null)}
                     researchContext={researchContext}
                     onSetResearchContext={setResearchContext}
+                    initialChatQuery={initialChatQuery}
+                    onClearInitialChatQuery={() => setInitialChatQuery(null)}
                     onSwitchMode={(mode) => setSidebarMode(mode)}
                     onOpenTabs={(urls: string[]) => {
                       const newTabs = urls.map((u, i) => ({

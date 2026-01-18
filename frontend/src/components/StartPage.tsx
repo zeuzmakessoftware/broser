@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Search, Compass, BookOpen, GraduationCap, Mic } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { ParticleSystem } from './ParticleSystem';
 
 interface StartPageProps {
   onNavigate: (url: string) => void;
@@ -47,7 +48,7 @@ export function StartPage({ onNavigate, onNewTab, onVoiceClick }: StartPageProps
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen w-full bg-[#1a1a1a] text-white overflow-hidden relative selection:bg-purple-500/30">
-      {/* Background Gradients */}
+      {/* Background Gradients & Particles */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <motion.div 
             initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.5, repeat: Infinity, repeatType: "reverse" }}
@@ -57,6 +58,7 @@ export function StartPage({ onNavigate, onNewTab, onVoiceClick }: StartPageProps
             initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 2, delay: 0.5, repeat: Infinity, repeatType: "reverse" }}
             className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]"
         />
+        <ParticleSystem />
       </div>
 
       <motion.div 

@@ -24,9 +24,10 @@ declare global {
 
 // ... (Window creation logic remains)
 
-ipcMain.handle('db:save-note', async (event, content) => {
+ipcMain.handle('db:save-note', async (event, payload: any) => {
   try {
-    const note = await Note.create({ content });
+    const { content, workspaceId } = typeof payload === 'string' ? { content: payload } : payload;
+    const note = await Note.create({ content, workspaceId });
     return { success: true, note };
   } catch (error) {
     console.error('Error saving note:', error);

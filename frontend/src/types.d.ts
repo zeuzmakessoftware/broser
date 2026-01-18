@@ -11,6 +11,7 @@ interface BrowserAPI {
         chat: (message: string | { text?: string; audio?: string; context?: any }, context?: any) => Promise<any>;
         summarize: (content: string, url?: string) => Promise<{ summary: string }>;
         extractIntent: (voiceCommand: string) => Promise<any>;
+        chatNotes: (query: string, context?: string) => Promise<{ response: string }>;
     };
     voice: {
         speak: (text: string) => Promise<void>;
@@ -29,7 +30,7 @@ interface BrowserAPI {
         createWorkspace: (title: string) => Promise<any>;
         getWorkspaceData: (id: string) => Promise<any>;
         getNotes: () => Promise<any[]>;
-        saveNote: (content: string) => Promise<any>;
+        saveNote: (content: string, workspaceId?: string) => Promise<any>;
     };
 }
 

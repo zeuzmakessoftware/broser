@@ -13,9 +13,10 @@ const BROWSER_API = {
   // AI Services
   ai: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    chat: (message: any, context: any) => ipcRenderer.invoke('ai:chat', { message, context }), 
+    chat: (message: any, context: any) => ipcRenderer.invoke('ai:chat', { message, context }),
     summarize: (content: string, url?: string) => ipcRenderer.invoke('ai:summarize', { content, url }),
-    extractIntent: (voiceCommand: string) => ipcRenderer.invoke('ai:extract-intent', { voiceCommand })
+    extractIntent: (voiceCommand: string) => ipcRenderer.invoke('ai:extract-intent', { voiceCommand }),
+    chatNotes: (query: string, context?: string) => ipcRenderer.invoke('ai:chat-notes', { query, context })
   },
 
   // Voice Services
@@ -23,21 +24,7 @@ const BROWSER_API = {
     speak: (text: string) => ipcRenderer.invoke('voice:speak', { text })
   },
 
-  // Workflow Services
-  workflow: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    trigger: (workflowId: string, data: any) => ipcRenderer.invoke('trigger-workflow', { workflowId, data })
-  },
-
-  // API Requests (for MongoDB backend)
-  api: {
-    get: (endpoint: string) => ipcRenderer.invoke('api-request', { method: 'GET', endpoint }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    post: (endpoint: string, data: any) => ipcRenderer.invoke('api-request', { method: 'POST', endpoint, data }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    put: (endpoint: string, data: any) => ipcRenderer.invoke('api-request', { method: 'PUT', endpoint, data }),
-    delete: (endpoint: string) => ipcRenderer.invoke('api-request', { method: 'DELETE', endpoint })
-  },
+  // ... (Workflow Services)
 
   // Database Direct Access (Legacy/Core)
   db: {
@@ -45,7 +32,7 @@ const BROWSER_API = {
     createWorkspace: (title: string) => ipcRenderer.invoke('db:create-workspace', title),
     getWorkspaceData: (id: string) => ipcRenderer.invoke('db:get-workspace-data', id),
     getNotes: () => ipcRenderer.invoke('db:get-notes'),
-    saveNote: (content: string) => ipcRenderer.invoke('db:save-note', content)
+    saveNote: (content: string, workspaceId?: string) => ipcRenderer.invoke('db:save-note', { content, workspaceId })
   }
 };
 

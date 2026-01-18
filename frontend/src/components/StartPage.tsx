@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Compass, BookOpen, Clock, Settings } from 'lucide-react';
+import { Search, Compass, BookOpen, GraduationCap, Settings } from 'lucide-react';
 
 interface StartPageProps {
   onNavigate: (url: string) => void;
@@ -25,7 +25,7 @@ export function StartPage({ onNavigate, onNewTab }: StartPageProps) {
   const quickLinks = [
     { icon: Compass, label: 'Explore', url: 'new-tab' },
     { icon: BookOpen, label: 'Docs', url: 'https://docs.google.com' },
-    { icon: Clock, label: 'History', url: 'https://myactivity.google.com' },
+    { icon: GraduationCap, label: 'Canvas', url: 'https://canvas.instructure.com' },
     { icon: Settings, label: 'Settings', url: 'noteva://settings' },
   ];
 

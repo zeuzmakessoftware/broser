@@ -27,7 +27,7 @@ function App() {
   const [tabs, setTabs] = useState<Tab[]>([
     { id: '1', title: 'Start Page', url: 'noteva://start', active: true }
   ]);
-  const [sidebarMode, setSidebarMode] = useState<'notes' | 'chat' | 'settings' | 'research' | 'history' | null>(null);
+  const [sidebarMode, setSidebarMode] = useState<'notes' | 'chat' | 'settings' | 'research' | null>(null);
   const [expansionMode, setExpansionMode] = useState<'compact' | 'half' | 'full'>('compact');
   const [aiResponseToProcess, setAiResponseToProcess] = useState<any>(null);
   const [researchContext, setResearchContext] = useState<{ topic?: string; workspaceId?: string; queries?: string[] } | null>(null);
@@ -49,10 +49,10 @@ function App() {
       }
 
       const res = await api.ai.chat({ audio: base64Audio, context });
-      
+
       // Delegate response handling to SidePanelContent
       setAiResponseToProcess(res);
-      
+
       // Open chat panel to show response
       setSidebarMode('chat');
     } catch (e) {
@@ -134,7 +134,7 @@ function App() {
     }
   };
 
-  const toggleSidebar = (mode: 'notes' | 'chat' | 'settings' | 'research' | 'history') => {
+  const toggleSidebar = (mode: 'notes' | 'chat' | 'settings' | 'research') => {
     setSidebarMode(curr => curr === mode ? null : mode);
     if (!sidebarMode) setExpansionMode('compact');
   };
@@ -209,12 +209,11 @@ function App() {
                   expansionMode={expansionMode}
                   onToggleExpand={toggleExpand}
                   onClose={() => setSidebarMode(null)}
-                  onNavigate={handleNavigate}
                   pendingAIResponse={aiResponseToProcess}
                   onResponseProcessed={() => setAiResponseToProcess(null)}
                   researchContext={researchContext}
                   onSetResearchContext={setResearchContext}
-                  onSwitchMode={(mode) => setSidebarMode(mode)}
+                  onSwitchMode={(mode: any) => setSidebarMode(mode)}
                   onOpenTabs={(urls: string[]) => {
                     const newTabs = urls.map((u, i) => ({
                       id: Date.now().toString() + i,

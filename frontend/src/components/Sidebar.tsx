@@ -1,10 +1,10 @@
-import { BookOpen, MessageSquare, Settings, Mic, Notebook, Clock } from 'lucide-react';
+import { BookOpen, MessageSquare, Settings, Mic, Notebook } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface SidebarProps {
   isOpen: boolean;
-  activeMode: 'notes' | 'chat' | 'settings' | 'research' | 'history' | null;
-  onToggle: (mode: 'notes' | 'chat' | 'settings' | 'research' | 'history') => void;
+  activeMode: 'notes' | 'chat' | 'settings' | 'research' | null;
+  onToggle: (mode: 'notes' | 'chat' | 'settings' | 'research') => void;
   onVoiceClick: () => void;
   isListening?: boolean;
 }
@@ -54,17 +54,7 @@ export function Sidebar({ isOpen: _isOpen, activeMode, onToggle, onVoiceClick, i
         {activeMode === 'chat' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-purple-500 rounded-r-full" />}
       </button>
 
-      <button
-        onClick={() => onToggle('history')}
-        className={clsx(
-          "p-2 rounded-lg transition-all duration-200 group relative no-drag",
-          activeMode === 'history' ? "bg-white/10 text-white" : "text-gray-400 hover:text-white hover:bg-white/5"
-        )}
-        title="History"
-      >
-        <Clock size={20} />
-        {activeMode === 'history' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-yellow-500 rounded-r-full" />}
-      </button>
+
 
       <button
         onClick={onVoiceClick}

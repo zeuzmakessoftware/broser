@@ -1,16 +1,27 @@
-const { app, BrowserWindow, ipcMain, session, systemPreferences } = require('electron');
-const path = require('path');
-const connectDB = require('./src/db');
+import { app, BrowserWindow, ipcMain, session, systemPreferences } from 'electron';
+import path from 'path';
+import connectDB from './db';
 
 // Models
-const Note = require('./src/models/Note');
-const Task = require('./src/models/Task');
-const Source = require('./src/models/Source');
-const Citation = require('./src/models/Citation');
-const Workspace = require('./src/models/Workspace');
+import Note from './models/Note';
+import Task from './models/Task';
+import Source from './models/Source';
+import Citation from './models/Citation';
+import Workspace from './models/Workspace';
+
+// Services
+import * as aiService from './services/ai';
+import * as voiceService from './services/voice';
 
 // Connect to MongoDB
 connectDB();
+
+// Declare global mainWindow
+declare global {
+  // eslint-disable-next-line no-var
+  var mainWindow: BrowserWindow | undefined;
+}
+
 // ... (Window creation logic remains)
 
 ipcMain.handle('db:save-note', async (event, content) => {
@@ -19,7 +30,7 @@ ipcMain.handle('db:save-note', async (event, content) => {
     return { success: true, note };
   } catch (error) {
     console.error('Error saving note:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: (error as any).message };
   }
 });
 
@@ -37,7 +48,7 @@ ipcMain.handle('db:create-task', async (event, title) => {
     return { success: true, task };
   } catch (error) {
     console.error('Error creating task:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: (error as any).message };
   }
 });
 
@@ -82,7 +93,7 @@ ipcMain.handle('db:create-workspace', async (event, title) => {
     return { success: true, workspace };
   } catch (error) {
     console.error('Error creating workspace:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: (error as any).message };
   }
 });
 
@@ -105,7 +116,7 @@ ipcMain.handle('ai:chat', async (event, prompt) => {
   try {
     console.log('Received AI Prompt:', prompt);
     // prompt can be string or object { audio: base64 }
-    const aiResponse = await require('./src/services/ai').processPrompt(prompt);
+    const aiResponse = await aiService.processPrompt(prompt);
     console.log('AI Response:', aiResponse);
 
     // Handle Side Effects (DB Operations)
@@ -124,7 +135,7 @@ ipcMain.handle('ai:chat', async (event, prompt) => {
     // Generate Audio if there is a spoken response
     let audioData = null;
     if (aiResponse.response) {
-      audioData = await require('./src/services/voice').streamAudio(aiResponse.response);
+      audioData = await voiceService.streamAudio(aiResponse.response);
     }
 
     return { ...aiResponse, audioData };
@@ -135,9 +146,8 @@ ipcMain.handle('ai:chat', async (event, prompt) => {
   }
 });
 
-// New AI Handlers
 ipcMain.handle('ai:summarize', async (event, text) => {
-  return await require('./src/services/ai').summarizeContent(text);
+  return await aiService.summarizeContent(text);
 });
 
 ipcMain.handle('ai:chat-notes', async (event, { query, context }) => {
@@ -152,7 +162,7 @@ ipcMain.handle('ai:chat-notes', async (event, { query, context }) => {
       finalContext = "";
     }
   }
-  return await require('./src/services/ai').processChatWithContext(query, finalContext);
+  return await aiService.processChatWithContext(query, finalContext);
 });
 
 function createWindow() {
@@ -168,14 +178,21 @@ function createWindow() {
     trafficLightPosition: { x: 16, y: 16 }, // Stash style
     webPreferences: {
       webviewTag: true,
-      preload: path.join(__dirname, 'src', 'preload.js'), // Moved to src
+      preload: path.join(__dirname, 'preload.js'), // Compiled to dist/preload.js (needs build config)
       nodeIntegration: true, // KEEPING CURRENT LOGIC for compatibility
       contextIsolation: false, // KEEPING CURRENT LOGIC
       sandbox: false // Stash had false
     },
   });
 
-  win.loadFile('src/index.html'); // Moved to src
+  const isDev = !app.isPackaged;
+  if (isDev) {
+    win.loadURL('http://localhost:5173');
+    // Open dev tools in dev mode
+    win.webContents.openDevTools();
+  } else {
+    win.loadFile(path.join(__dirname, '../frontend/dist/index.html'));
+  }
 
   // Handle permission requests
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {

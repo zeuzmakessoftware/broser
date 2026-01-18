@@ -2,7 +2,7 @@
   "name": "broser",
   "version": "1.0.0",
   "description": "A simple Electron-based web browser",
-  "main": "main.js",
+  "main": "dist/main.js",
   "keywords": [
     "electron",
     "browser",
@@ -11,12 +11,21 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/electron": "^1.4.38",
+    "@types/node": "^25.0.9",
+    "concurrently": "^9.2.1",
     "electron": "^34.0.0",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "wait-on": "^9.0.3"
   },
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder",
+    "build:backend": "tsc",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev": "concurrently -k \"npm run dev:frontend\" \"npm run build:backend -- --watch\" \"wait-on tcp:5173 dist/main.js && npm start\"",
+    "build": "npm run build:backend && npm run build --prefix frontend && electron-builder",
     "pack": "electron-builder --dir",
     "postinstall": "node scripts/patch-plist.js"
   },

@@ -27,7 +27,7 @@ export function StartPage({ onNavigate, onNewTab, onVoiceClick }: StartPageProps
   const quickLinks = [
     { icon: Compass, label: 'Explore', url: 'new-tab' },
     { icon: BookOpen, label: 'Docs', url: 'https://docs.google.com' },
-    { icon: GraduationCap, label: 'Canvas', url: 'https://canvas.instructure.com' },
+    { icon: GraduationCap, label: 'Canvas', url: 'https://canvas.ucsc.edu/' },
     { icon: Mic, label: 'Voice', url: 'noteva://voice' },
   ];
 

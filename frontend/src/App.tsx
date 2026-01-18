@@ -152,13 +152,16 @@ function App() {
         />
 
         <div className="flex-1 relative bg-white">
-          {/* 
-                For multiple tabs, we can either:
-                1. Have one webview that changes URL (simpler state)
-                2. Have multiple webviews hidden/shown (better performance/state preservation)
-                
-                Let's do (2) for production grade feel.
-             */}
+          {tabs.map(tab => (
+            <webview
+              key={tab.id}
+              id={tab.active ? 'main-webview' : undefined}
+              src={tab.url}
+              className={`w-full h-full ${tab.active ? 'flex' : 'hidden'}`}
+              // @ts-ignore
+              allowpopups="true"
+            />
+          ))}
           {sidebarMode && (
             <div className={`absolute right-0 top-0 bottom-0 bg-[#1e1e1e] border-l border-white/10 shadow-2xl z-40 animate-in slide-in-from-right duration-200 transition-all ${expansionMode === 'compact' ? 'w-80' :
               expansionMode === 'half' ? 'w-1/2' : 'w-full'

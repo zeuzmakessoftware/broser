@@ -16,7 +16,7 @@ export function Sidebar({ isOpen: _isOpen, activeMode, onToggle, onVoiceClick, i
        {/* Mac Traffic Lights Spacing */}
        <div className="h-6 w-full" /> 
        
-       <div className="w-14 h-14 bg-neutral-800 rounded-lg mb-2 no-drag" />
+       <img src="/swagscg.svg" alt="Logo" className="w-14 h-14 mb-2 no-drag select-none rounded-xl" />
 
        <button
          onClick={() => onToggle('research')}

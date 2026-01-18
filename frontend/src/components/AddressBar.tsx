@@ -24,7 +24,7 @@ export function AddressBar({ url, onNavigate, onBack, onForward, onReload, isLoa
   };
 
   return (
-    <div className="h-10 bg-[#2b2b2b] flex items-center px-4 gap-3 no-drag-region border-b border-black/20">
+    <div className="h-10 bg-[#2b2b2b] flex items-center px-4 gap-3 no-drag border-b border-black/20">
       <div className="flex gap-1 text-gray-400">
         <button onClick={onBack} className="p-1.5 hover:bg-white/10 rounded-md hover:text-white transition-colors">
           <ArrowLeft size={16} />

@@ -3,6 +3,8 @@ import { useBrowserAPI } from '../hooks/useBrowserAPI';
 import { Search, Maximize2, Minimize2, BookOpen, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Workspace {
     _id: string;
@@ -195,30 +197,43 @@ export function ResearchPanel({
 
                                         const prompt = `
                                         Analyze this page for my research on: "${topic}".
-                                        Perform multiple actions using "MULTI_ACTION" type to structure your response:
-                                        
-                                        1. SAVE_SOURCE: Save the page metadata.
+                                        Perform multiple actions using "MULTI_ACTION" type to structure your response.
+                                        BE VERY THOROUGH. Extra detailed notes and multiple citations are required.
+
+                                        1. SAVE_SOURCE: Save the page metadata with proper MLA citation.
                                            - URL: ${url}
                                            - Title: ${title}
                                            - WorkspaceId: ${currentWorkspaceId}
-                                           - Summary: A brief summary of the page content.
+                                           - Summary: A comprehensive summary of the page content relevant to the topic.
                                            - Tags: ['supporting' | 'opposing' | 'neutral', 'topic tags...']
-                                           
-                                        2. SAVE_CITATION: Extract 3 key quotes relevant to "${topic}".
-                                           - Each citation should have "sourceUrl": "${url}", "content": "The quote...", "workspaceId": "${currentWorkspaceId}"
-                                           
-                                        3. CREATE_NOTE: Write a brief analysis note about how this source relates to "${topic}".
-                                           - "content": "Analysis...", "workspaceId": "${currentWorkspaceId}"
+                                           - mlaCitation: "Generate a correct MLA style citation for this webpage. Today is ${new Date().toLocaleDateString()}."
+
+                                        2. SAVE_CITATION: Extract at least 3-5 distinct, direct quotes from the text that are highly relevant to "${topic}".
+                                           - Each citation should have "sourceUrl": "${url}", "content": "The direct quote...", "workspaceId": "${currentWorkspaceId}"
+
+                                        3. CREATE_NOTE: Write detailed research notes based on this source. Use Markdown formatting. Structure the content with bullet points ( - ) for key arguments, data points, dates, and facts.
+                                           - "content": "### Key Findings\n- Point 1\n- Point 2", "workspaceId": "${currentWorkspaceId}"
+                                           - Create multiple NOTE actions if there are distinct topics covered, or one comprehensive note.
 
                                         Page Content:
-                                        ${text.substring(0, 15000)}
+                                        ${text.substring(0, 30000)}
                                         `;
 
-                                        await api.ai.chat(prompt);
+                                        // Race against a timeout
+                                        const timeoutPromise = new Promise((_, reject) => 
+                                            setTimeout(() => reject(new Error("Analysis timed out")), 45000)
+                                        );
+
+                                        await Promise.race([
+                                            api.ai.chat(prompt, { workspaceId: currentWorkspaceId }),
+                                            timeoutPromise
+                                        ]);
+                                        
                                         await loadWorkspaceData(currentWorkspaceId);
                                     }
                                 } catch (e) {
                                     console.error("Analyze Error", e);
+                                    alert("Analysis failed or timed out. Please try again or with less text.");
                                 } finally {
                                     setLoading(false);
                                 }
@@ -281,10 +296,19 @@ export function ResearchPanel({
                                         {tab === 'sources' && (
                                             <>
                                                 <div className="font-bold mb-1">{item.title || 'Untitled'}</div>
-                                                <div className="text-gray-400 truncate">{item.url}</div>
+                                                <div className="text-gray-400 truncate mb-1">{item.url}</div>
+                                                {item.mlaCitation && (
+                                                    <div className="text-xs text-gray-500 font-serif border-l-2 border-white/20 pl-2 mt-1">
+                                                        {item.mlaCitation}
+                                                    </div>
+                                                )}
                                             </>
                                         )}
-                                        {tab === 'notes' && <div>{item.content}</div>}
+                                        {tab === 'notes' && (
+                                            <div className="prose prose-invert prose-xs max-w-none">
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.content}</ReactMarkdown>
+                                            </div>
+                                        )}
                                         {tab === 'citations' && (
                                             <>
                                                 <div className="italic mb-1">"{item.content}"</div>

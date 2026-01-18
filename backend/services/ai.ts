@@ -27,7 +27,7 @@ Format:
 Payload Schemas:
 - NAVIGATE: { "url": string }
 - RESEARCH: { "topic": string, "queries": string[] } (queries to search on Google)
-- SAVE_SOURCE: { "url": string, "title": string, "workspaceId": string, "summary"?: string, "tags"?: string[] }
+- SAVE_SOURCE: { "url": string, "title": string, "workspaceId": string, "summary"?: string, "tags"?: string[], "mlaCitation"?: string }
 - SAVE_CITATION: { "sourceUrl": string, "content": string, "workspaceId": string }
 - CREATE_NOTE: { "content": string, "workspaceId": string }
 - MULTI_ACTION: { "actions": [{ "type": string, "payload": object }] }

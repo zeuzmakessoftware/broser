@@ -151,17 +151,31 @@ ipcMain.handle('db:get-workspace-data', async (event, workspaceId) => {
 
 // AI & Voice Handler
 // Helper to handle individual AI actions
-const handleAIAction = async (action: { type: string, payload: any }) => {
+const handleAIAction = async (action: { type: string, payload: any }, defaultWorkspaceId?: string) => {
+  // Inject defaultWorkspaceId if payload is missing it
+  if (defaultWorkspaceId && action.payload && typeof action.payload === 'object') {
+     // For CREATE_NOTE, SAVE_SOURCE, SAVE_CITATION, inject workspaceId if missing
+     if (['CREATE_NOTE', 'SAVE_SOURCE', 'SAVE_CITATION'].includes(action.type)) {
+         if (!action.payload.workspaceId) {
+             console.log(`[Auto-Fix] Injecting missing workspaceId: ${defaultWorkspaceId} into action ${action.type}`);
+             action.payload.workspaceId = defaultWorkspaceId;
+         }
+     }
+  }
+
   if (action.type === 'CREATE_NOTE') {
     const content = typeof action.payload === 'string' ? action.payload : action.payload.content;
     const workspaceId = typeof action.payload === 'object' ? action.payload.workspaceId : undefined;
+    if (!workspaceId) console.warn('Warning: CREATE_NOTE missing workspaceId');
     await Note.create({ content, workspaceId });
   } else if (action.type === 'CREATE_TASK') { // LEGACY support
     const title = typeof action.payload === 'string' ? action.payload : action.payload.title;
     await Task.create({ title });
   } else if (action.type === 'SAVE_SOURCE') {
+    if (!action.payload.workspaceId) console.warn('Warning: SAVE_SOURCE missing workspaceId');
     await Source.create(action.payload);
   } else if (action.type === 'SAVE_CITATION') {
+    if (!action.payload.workspaceId) console.warn('Warning: SAVE_CITATION missing workspaceId');
     await Citation.create(action.payload);
   } else if (action.type === 'RESEARCH') {
     const { topic } = action.payload;
@@ -173,7 +187,7 @@ const handleAIAction = async (action: { type: string, payload: any }) => {
   }
 };
 
-ipcMain.handle('ai:chat', async (event, prompt) => {
+ipcMain.handle('ai:chat', async (event, prompt, options = {}) => {
   // ... (caller of handleAIAction)
   // note: replace_file_content with context needed. This chunk only targets handleAIAction
   // I will target the full file content for DB handlers next.
@@ -186,14 +200,30 @@ ipcMain.handle('ai:chat', async (event, prompt) => {
     console.log('AI Response:', aiResponse);
 
     // Handle Side Effects
+    console.log('AI Response Type:', aiResponse.type);
+    const defaultWorkspaceId = options?.workspaceId;
     if (aiResponse.type === 'MULTI_ACTION') {
       if (aiResponse.payload && Array.isArray(aiResponse.payload.actions)) {
+        console.log(`Processing ${aiResponse.payload.actions.length} actions... Default Workspace: ${defaultWorkspaceId}`);
         for (const action of aiResponse.payload.actions) {
-          await handleAIAction(action);
+          console.log('Executing Action:', action.type, JSON.stringify(action.payload));
+          try {
+             await handleAIAction(action, defaultWorkspaceId);
+             console.log('Action success:', action.type);
+          } catch (err) {
+             console.error('Action failed:', action.type, err);
+          }
         }
+      } else {
+          console.warn('MULTI_ACTION received but payload.actions is missing or invalid', aiResponse.payload);
       }
     } else {
-      await handleAIAction(aiResponse);
+      console.log('Executing Single Action:', aiResponse.type);
+      try {
+          await handleAIAction(aiResponse, defaultWorkspaceId);
+      } catch (err) {
+          console.error('Action failed:', aiResponse.type, err);
+      }
     }
 
     // Generate Audio if there is a spoken response

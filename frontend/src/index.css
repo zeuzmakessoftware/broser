@@ -41,3 +41,11 @@ body {
 .rotate-y-180 {
   transform: rotateY(180deg);
 }
+
+.dragged-region {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}

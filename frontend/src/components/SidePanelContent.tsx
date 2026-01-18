@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useBrowserAPI } from '../hooks/useBrowserAPI';
 import { ResearchPanel } from './ResearchPanel';
-import { Upload, Globe, BookOpen, School, Brain } from 'lucide-react';
+import { Upload, Globe, BookOpen, School, Brain, Sparkles, Copy, Check } from 'lucide-react';
 
 export function SidePanelContent({ mode }: { mode: 'notes' | 'chat' | 'settings' | 'research' }) {
     const api = useBrowserAPI();
@@ -9,9 +9,10 @@ export function SidePanelContent({ mode }: { mode: 'notes' | 'chat' | 'settings'
     const [loading, setLoading] = useState(false);
 
     // Context & Chat State (Merged)
-    const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
+    const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string, isSummary?: boolean }[]>([]);
     const [input, setInput] = useState('');
     const [context, setContext] = useState('');
+    const [copiedId, setCopiedId] = useState<number | null>(null);
 
     // Study Mode State
     const [studyMode, setStudyMode] = useState<'none' | 'summary' | 'quiz' | 'flashcards'>('none');
@@ -57,7 +58,7 @@ export function SidePanelContent({ mode }: { mode: 'notes' | 'chat' | 'settings'
             // Preload has ai.summarize.
             const res = await api.ai.summarize(text);
             const summary = (res as any).summary || res; // depending on backend return
-            setMessages(prev => [...prev, { role: 'assistant', content: `Summary of ${file.name}:\n${summary}` }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: summary, isSummary: true }]);
         } catch (err) {
             console.error(err);
             setMessages(prev => [...prev, { role: 'assistant', content: "Failed to read/summarize file." }]);
@@ -75,7 +76,7 @@ export function SidePanelContent({ mode }: { mode: 'notes' | 'chat' | 'settings'
             setContext(prev => prev + "\n" + text);
             const res = await api.ai.summarize(text);
             const summary = (res as any).summary || res;
-            setMessages(prev => [...prev, { role: 'assistant', content: summary }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: summary, isSummary: true }]);
         } catch (err) {
             setMessages(prev => [...prev, { role: 'assistant', content: "Failed to access page content." }]);
         }
@@ -329,9 +330,37 @@ export function SidePanelContent({ mode }: { mode: 'notes' | 'chat' | 'settings'
                         {messages.length === 0 && <div className="text-gray-500 text-xs text-center">Ask questions about your notes or upload files...</div>}
                         {messages.map((m, i) => (
                             <div key={i} className={m.role === 'user' ? "text-right" : "text-left"}>
-                                <div className={`inline-block p-2 rounded-lg text-sm max-w-[90%] whitespace-pre-wrap ${m.role === 'user' ? 'bg-blue-600' : 'bg-gray-700'}`}>
-                                    {m.content}
-                                </div>
+                                {m.role === 'assistant' && m.isSummary ? (
+                                    <div className="inline-block w-full max-w-[95%] text-left mt-2 mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                        <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 rounded-xl overflow-hidden shadow-xl backdrop-blur-sm">
+                                            <div className="flex items-center justify-between px-3 py-2 bg-indigo-500/20 border-b border-indigo-500/20">
+                                                <div className="flex items-center gap-2">
+                                                    <Sparkles size={14} className="text-indigo-400" />
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-300">AI Summary</span>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText((m as any).content);
+                                                        setCopiedId(i);
+                                                        setTimeout(() => setCopiedId(null), 2000);
+                                                    }}
+                                                    className="p-1 hover:bg-white/10 rounded transition-colors text-indigo-400"
+                                                >
+                                                    {copiedId === i ? <Check size={12} /> : <Copy size={12} />}
+                                                </button>
+                                            </div>
+                                            <div className="p-3">
+                                                <div className="text-sm leading-relaxed text-gray-100 whitespace-pre-wrap">
+                                                    {(m as any).content}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className={`inline-block p-2 rounded-lg text-sm max-w-[90%] whitespace-pre-wrap ${m.role === 'user' ? 'bg-blue-600' : 'bg-gray-700'}`}>
+                                        {m.content}
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

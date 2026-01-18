@@ -22,10 +22,9 @@
   },
   "scripts": {
     "prestart": "npm run build:backend",
-    "start": "electron .",
+    "start": "concurrently -k \"npm run dev:frontend\" \"npm run build:backend -- --watch\" \"wait-on tcp:5173 dist/main.js && electron .\"",
     "build:backend": "tsc",
     "dev:frontend": "npm run dev --prefix frontend",
-    "dev": "concurrently -k \"npm run dev:frontend\" \"npm run build:backend -- --watch\" \"wait-on tcp:5173 dist/main.js && npm start\"",
     "build": "npm run build:backend && npm run build --prefix frontend && electron-builder",
     "pack": "electron-builder --dir",
     "postinstall": "node scripts/patch-plist.js"

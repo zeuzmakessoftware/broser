@@ -12,7 +12,6 @@ export function SidePanelContent({ mode }: { mode: 'notes' | 'chat' | 'settings'
     const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
     const [input, setInput] = useState('');
     const [context, setContext] = useState('');
-    const [isExpanded, setIsExpanded] = useState(false);
 
     useEffect(() => {
         if (mode === 'notes') {
@@ -90,25 +89,15 @@ export function SidePanelContent({ mode }: { mode: 'notes' | 'chat' | 'settings'
         }
     };
 
-    if (mode === 'notes' || mode === 'chat') {
-        // Merging chat into notes view, or just keeping them similar.
-        // If mode is 'chat', maybe show only chat?
-        // User asked "in the notes and task section there shoul be a chat bot"
-        // So let's render the combined view for 'notes'.
-
-        const showChat = !isExpanded;
-
+    if (mode === 'notes') {
         return (
             <div className="flex flex-col h-full text-white">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-bold">Notes & Assistant</h2>
-                    <button onClick={() => setIsExpanded(!isExpanded)} className="text-gray-400 hover:text-white">
-                        {isExpanded ? <Globe size={16} /> : <Upload size={16} className="rotate-90" />} {/* Icons symbolic */}
-                    </button>
+                    <h2 className="text-lg font-bold">Notes</h2>
                 </div>
 
                 {/* Notes List */}
-                <div className={`flex-1 overflow-y-auto space-y-2 mb-4 transition-all duration-300 ${showChat ? 'h-1/2' : 'h-full'}`}>
+                <div className="flex-1 overflow-y-auto space-y-2 mb-4 h-full">
                     {loading ? <div>Loading...</div> : (
                         <>
                             {notes.length === 0 && <div className="text-gray-500 text-sm">No notes found.</div>}
@@ -118,43 +107,51 @@ export function SidePanelContent({ mode }: { mode: 'notes' | 'chat' | 'settings'
                         </>
                     )}
                 </div>
+            </div>
+        );
+    }
+
+    if (mode === 'chat') {
+        return (
+            <div className="flex flex-col h-full text-white">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-lg font-bold">AI Assistant</h2>
+                </div>
 
                 {/* Chat Interface */}
-                {showChat && (
-                    <div className="h-1/2 flex flex-col border-t border-white/10 pt-2">
-                        <div className="flex-1 overflow-y-auto space-y-3 mb-2 p-2 bg-black/20 rounded">
-                            {messages.length === 0 && <div className="text-gray-500 text-xs text-center">Ask questions about your notes or upload files...</div>}
-                            {messages.map((m, i) => (
-                                <div key={i} className={m.role === 'user' ? "text-right" : "text-left"}>
-                                    <div className={`inline-block p-2 rounded-lg text-sm max-w-[90%] whitespace-pre-wrap ${m.role === 'user' ? 'bg-blue-600' : 'bg-gray-700'}`}>
-                                        {m.content}
-                                    </div>
+                <div className="flex-1 flex flex-col h-full">
+                    <div className="flex-1 overflow-y-auto space-y-3 mb-2 p-2 bg-black/20 rounded">
+                        {messages.length === 0 && <div className="text-gray-500 text-xs text-center">Ask questions about your notes or upload files...</div>}
+                        {messages.map((m, i) => (
+                            <div key={i} className={m.role === 'user' ? "text-right" : "text-left"}>
+                                <div className={`inline-block p-2 rounded-lg text-sm max-w-[90%] whitespace-pre-wrap ${m.role === 'user' ? 'bg-blue-600' : 'bg-gray-700'}`}>
+                                    {m.content}
                                 </div>
-                            ))}
-                        </div>
-
-                        <div className="flex gap-2 mb-2">
-                            <label className="cursor-pointer bg-white/10 p-1.5 rounded hover:bg-white/20 text-gray-400 hover:text-white transition-colors" title="Upload File">
-                                <input type="file" className="hidden" onChange={handleFileUpload} />
-                                <Upload size={16} />
-                            </label>
-                            <button onClick={handleSummarizePage} className="bg-white/10 p-1.5 rounded hover:bg-white/20 text-gray-400 hover:text-white transition-colors" title="Summarize Page">
-                                <Globe size={16} />
-                            </button>
-                        </div>
-
-                        <div className="flex gap-2">
-                            <input
-                                className="flex-1 bg-white/10 border border-white/10 rounded px-2 py-1 text-sm focus:outline-none"
-                                value={input}
-                                onChange={e => setInput(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                                placeholder="Ask about notes..."
-                            />
-                            <button onClick={sendMessage} className="bg-blue-600 px-3 py-1 rounded text-sm">Send</button>
-                        </div>
+                            </div>
+                        ))}
                     </div>
-                )}
+
+                    <div className="flex gap-2 mb-2">
+                        <label className="cursor-pointer bg-white/10 p-1.5 rounded hover:bg-white/20 text-gray-400 hover:text-white transition-colors" title="Upload File">
+                            <input type="file" className="hidden" onChange={handleFileUpload} />
+                            <Upload size={16} />
+                        </label>
+                        <button onClick={handleSummarizePage} className="bg-white/10 p-1.5 rounded hover:bg-white/20 text-gray-400 hover:text-white transition-colors" title="Summarize Page">
+                            <Globe size={16} />
+                        </button>
+                    </div>
+
+                    <div className="flex gap-2">
+                        <input
+                            className="flex-1 bg-white/10 border border-white/10 rounded px-2 py-1 text-sm focus:outline-none"
+                            value={input}
+                            onChange={e => setInput(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && sendMessage()}
+                            placeholder="Ask AI..."
+                        />
+                        <button onClick={sendMessage} className="bg-blue-600 px-3 py-1 rounded text-sm">Send</button>
+                    </div>
+                </div>
             </div>
         );
     }

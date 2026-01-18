@@ -18,12 +18,14 @@ export function ResearchPanel({
     expansionMode = 'compact',
     onToggleExpand,
     onOpenTabs,
-    onClose
+    onClose,
+    initialContext
 }: {
     expansionMode?: 'compact' | 'half' | 'full',
     onToggleExpand?: () => void,
     onOpenTabs?: (urls: string[]) => void,
-    onClose?: () => void
+    onClose?: () => void,
+    initialContext?: { topic?: string; workspaceId?: string; queries?: string[] }
 }) {
     const api = useBrowserAPI();
     const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -37,6 +39,26 @@ export function ResearchPanel({
     useEffect(() => {
         loadWorkspaces();
     }, []);
+
+    // Handle Initial Context (Auto-Research from Voice/Chat)
+    useEffect(() => {
+        if (initialContext) {
+            console.log("ResearchPanel received context:", initialContext);
+            if (initialContext.workspaceId) {
+                setCurrentWorkspaceId(initialContext.workspaceId);
+            } else if (initialContext.topic) {
+                // If we have a topic but no ID, try to find matching workspace or just prep input
+                const existing = workspaces.find(w => w.title.toLowerCase() === initialContext.topic?.toLowerCase());
+                if (existing) {
+                    setCurrentWorkspaceId(existing._id);
+                } else {
+                    setNewTopic(initialContext.topic);
+                    // Optional: Auto-create workspace if desired?
+                    // handleResearchAgent(); // Might cause loop if not careful.
+                }
+            }
+        }
+    }, [initialContext, workspaces]);
 
     useEffect(() => {
         if (currentWorkspaceId) {

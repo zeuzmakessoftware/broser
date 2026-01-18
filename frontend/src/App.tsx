@@ -18,6 +18,7 @@ import { useBrowserAPI } from './hooks/useBrowserAPI';
 // ...
 
 import { StartPage } from './components/StartPage';
+import { VoiceOverlay } from './components/VoiceOverlay';
 
 // ...
 
@@ -28,6 +29,8 @@ function App() {
   ]);
   const [sidebarMode, setSidebarMode] = useState<'notes' | 'chat' | 'settings' | 'research' | 'history' | null>(null);
   const [expansionMode, setExpansionMode] = useState<'compact' | 'half' | 'full'>('compact');
+  const [aiResponseToProcess, setAiResponseToProcess] = useState<any>(null);
+  const [researchContext, setResearchContext] = useState<{ topic?: string; workspaceId?: string; queries?: string[] } | null>(null);
 
   const handleVoiceData = async (base64Audio: string) => {
     // ... same as before
@@ -46,15 +49,11 @@ function App() {
       }
 
       const res = await api.ai.chat({ audio: base64Audio, context });
-      // Handle response (e.g. speak audio, navigate, open panel)
-      if (res.audioData) {
-        const audio = new Audio(`data:audio/mp3;base64,${res.audioData}`);
-        audio.play();
-      }
-      if (res.type === 'NAVIGATE') {
-        handleNavigate(res.payload);
-      }
-      // Open chat panel to show response?
+      
+      // Delegate response handling to SidePanelContent
+      setAiResponseToProcess(res);
+      
+      // Open chat panel to show response
       setSidebarMode('chat');
     } catch (e) {
       console.error("Voice Error", e);
@@ -148,8 +147,11 @@ function App() {
     });
   };
 
+
+
   return (
     <div className="flex h-screen w-screen bg-[#242424] text-white overflow-hidden font-sans">
+      {isListening && <VoiceOverlay onStop={toggleListening} />}
       <Sidebar
         isOpen={!!sidebarMode}
         activeMode={sidebarMode}
@@ -208,6 +210,11 @@ function App() {
                   onToggleExpand={toggleExpand}
                   onClose={() => setSidebarMode(null)}
                   onNavigate={handleNavigate}
+                  pendingAIResponse={aiResponseToProcess}
+                  onResponseProcessed={() => setAiResponseToProcess(null)}
+                  researchContext={researchContext}
+                  onSetResearchContext={setResearchContext}
+                  onSwitchMode={(mode) => setSidebarMode(mode)}
                   onOpenTabs={(urls: string[]) => {
                     const newTabs = urls.map((u, i) => ({
                       id: Date.now().toString() + i,

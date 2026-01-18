@@ -199,7 +199,11 @@ ipcMain.handle('ai:chat', async (event, prompt) => {
     // Generate Audio if there is a spoken response
     let audioData = null;
     if (aiResponse.response) {
-      audioData = await voiceService.streamAudio(aiResponse.response);
+      try {
+        audioData = await voiceService.streamAudio(aiResponse.response);
+      } catch (e) {
+        console.error('TTS Generation Error:', e);
+      }
     }
 
     return { ...aiResponse, audioData };
@@ -207,6 +211,17 @@ ipcMain.handle('ai:chat', async (event, prompt) => {
   } catch (error) {
     console.error('AI IPC Error:', error);
     return { type: 'ANSWER', response: "Sorry, something went wrong.", audioData: null };
+  }
+});
+
+// Voice Handler
+ipcMain.handle('voice:speak', async (event, { text }) => {
+  try {
+     const audioData = await voiceService.streamAudio(text);
+     return { audioData };
+  } catch (error) {
+    console.error('Voice Speak Error:', error);
+    return { audioData: null, error: (error as any).message };
   }
 });
 

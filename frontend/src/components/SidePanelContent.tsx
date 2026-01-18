@@ -4,6 +4,22 @@ import { ResearchPanel } from './ResearchPanel';
 import { Upload, Globe, BookOpen, School, Brain, Sparkles, Copy, Check, Youtube, Maximize2, Minimize2, X, ExternalLink, Clock } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { VoiceRecorder } from './VoiceRecorder';
+
+// Define Tool Call Types
+interface ToolCall {
+    id: string;
+    type: 'NAVIGATE' | 'RESEARCH';
+    payload: any;
+    status: 'pending' | 'approved' | 'denied' | 'executed';
+}
+
+interface Message {
+    role: 'user' | 'assistant';
+    content: string;
+    isSummary?: boolean;
+    toolCall?: ToolCall;
+}
 
 export function SidePanelContent({
     mode,
@@ -11,14 +27,24 @@ export function SidePanelContent({
     onToggleExpand,
     onOpenTabs,
     onClose,
-    onNavigate
+    onNavigate,
+    pendingAIResponse,
+    onResponseProcessed,
+    onSwitchMode,
+    researchContext,
+    onSetResearchContext
 }: {
     mode: 'notes' | 'chat' | 'settings' | 'research' | 'history',
     expansionMode?: 'compact' | 'half' | 'full',
     onToggleExpand?: () => void,
     onOpenTabs?: (urls: string[]) => void,
     onClose?: () => void,
-    onNavigate?: (url: string) => void
+    onNavigate?: (url: string) => void,
+    pendingAIResponse?: any,
+    onResponseProcessed?: () => void,
+    onSwitchMode?: (mode: 'notes' | 'chat' | 'settings' | 'research' | 'history' | null) => void,
+    researchContext?: any,
+    onSetResearchContext?: (ctx: any) => void
 }) {
     const api = useBrowserAPI();
     const [notes, setNotes] = useState<any[]>([]);
@@ -26,10 +52,20 @@ export function SidePanelContent({
     const [loading, setLoading] = useState(false);
 
     // Context & Chat State (Merged)
-    const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string, isSummary?: boolean }[]>([]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [context, setContext] = useState('');
     const [copiedId, setCopiedId] = useState<number | null>(null);
+
+    // Voice & Audio State
+    const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+    const [captionText, setCaptionText] = useState('');
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // Tool Call State (Pending Confirmation)
+    const [pendingToolCall, setPendingToolCall] = useState<ToolCall | null>(null);
+    // We also store tool calls in messages to show history, but pendingToolCall tracks active modal/blocking state if we wanted that (or just rely on message state)
+    // Actually, sticking to message-based state for the UI cards is better. The `sendMessage` loop will handle the "pause".
 
     // Study Mode State
     const [studyMode, setStudyMode] = useState<'none' | 'summary' | 'quiz' | 'flashcards'>('none');
@@ -40,6 +76,7 @@ export function SidePanelContent({
     const [isFlipped, setIsFlipped] = useState(false);
     const chatContainerRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const lastProcessedResponseRef = useRef<any>(null);
 
     const scrollToBottom = () => {
         // Use scrollTop on container instead of scrollIntoView to prevent window jump
@@ -60,6 +97,17 @@ export function SidePanelContent({
             loadHistory();
         }
     }, [messages, mode]);
+
+    // Handle Pending AI Response from Parent (Voice)
+    // Handle Pending AI Response from Parent (Voice)
+    useEffect(() => {
+        if (pendingAIResponse && onResponseProcessed && pendingAIResponse !== lastProcessedResponseRef.current) {
+             lastProcessedResponseRef.current = pendingAIResponse;
+             setMessages(prev => [...prev, { role: 'user', content: "🎤 Voice Command" }]);
+             processAIResponse(pendingAIResponse);
+             onResponseProcessed();
+        }
+    }, [pendingAIResponse, onResponseProcessed]);
 
     useEffect(() => {
         if (mode === 'notes') {
@@ -161,6 +209,131 @@ export function SidePanelContent({
         }
     };
 
+    const playAudioResponse = (base64Audio: string, text: string) => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+        }
+        
+        // Create audio from base64
+        const audio = new Audio(`data:audio/mp3;base64,${base64Audio}`);
+        audioRef.current = audio;
+        
+        setCaptionText(text);
+        setIsPlayingAudio(true);
+        
+        audio.onended = () => {
+            setIsPlayingAudio(false);
+            setCaptionText('');
+        };
+        
+        audio.play().catch(e => console.error("Audio play error:", e));
+    };
+
+    const handleVoiceRecording = async (blob: Blob) => {
+        // Convert blob to base64
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = async () => {
+            const base64Audio = (reader.result as string).split(',')[1];
+            
+            setMessages(prev => [...prev, { role: 'user', content: "🎤 Voice Command" }]);
+            
+            try {
+                // Determine context
+                let finalContext = context;
+                if (!finalContext) {
+                    try {
+                         const notes = await api.db.getNotes();
+                         finalContext = Array.isArray(notes) ? notes.map((n: any) => n.content).join('\n---\n') : "";
+                    } catch { finalContext = ""; }
+                }
+
+                // Call AI with audio
+                // We use api.ai.chat which maps to backend "processPrompt". 
+                // Backend expects { audio: string } or string.
+                const res = await api.ai.chat({ audio: base64Audio, context: finalContext ? { notes: finalContext } : undefined });
+                
+                processAIResponse(res);
+
+            } catch (e) {
+                console.error(e);
+                setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I couldn't process your voice command." }]);
+            }
+        };
+    };
+
+    const processAIResponse = (res: any) => {
+        // Play Audio if available
+        if (res.audioData) {
+            playAudioResponse(res.audioData, res.response);
+        }
+
+        // Check for Tool Calls (NAVIGATE, RESEARCH)
+        if (res.type === 'NAVIGATE' || res.type === 'RESEARCH') {
+            const toolCall: ToolCall = {
+                id: Date.now().toString(),
+                type: res.type,
+                payload: res.payload,
+                status: 'pending'
+            };
+            
+            setMessages(prev => [...prev, { 
+                role: 'assistant', 
+                content: res.response || "I need your permission to proceed.",
+                toolCall
+            }]);
+        } else if (res.type === 'MULTI_ACTION') {
+            // Handle multi-action (if any are restricted)
+             // Simplified for now: just show response. 
+             // If completely automated actions (save_source etc), they are handled in backend usually? 
+             // Wait, backend 'handleAIAction' executes them automatically? 
+             // My plan said "Backend handleAIAction to ensure NAVIGATE/RESEARCH don't auto-execute".
+             // If backend executed them, we shouldn't ask for permission.
+             // Backend main.ts: "else if (action.type === 'RESEARCH') ... action.payload.workspaceId = workspace._id...".
+             // It creates the workspace but doesn't "start scraping" necessarily. 
+             // But for NAVIGATE, main.ts helper `handleAIAction` doesn't support it, so it does nothing on backend. 
+             // So we are good to handle it here.
+             
+             setMessages(prev => [...prev, { role: 'assistant', content: res.response }]);
+        } else {
+             setMessages(prev => [...prev, { role: 'assistant', content: res.response }]);
+        }
+    };
+
+    const handleToolAction = async (msgIndex: number, action: 'approve' | 'deny') => {
+        const msg = messages[msgIndex];
+        if (!msg.toolCall) return;
+
+        const newMessages = [...messages];
+        const toolCall = { ...msg.toolCall, status: action === 'approve' ? 'approved' : 'denied' };
+        newMessages[msgIndex] = { ...msg, toolCall: toolCall as any }; // logic update
+        setMessages(newMessages);
+
+        if (action === 'approve') {
+            if (toolCall.type === 'NAVIGATE') {
+                const url = toolCall.payload.url;
+                if (onOpenTabs) onOpenTabs([url]); // Uses parent handler to open tab
+            } else if (toolCall.type === 'RESEARCH') {
+                 // Trigger research mode
+                 const { queries, topic, workspaceId } = toolCall.payload;
+                 
+                 // 1. Open Tabs
+                 if (queries && Array.isArray(queries) && queries.length > 0) {
+                     if (onOpenTabs) onOpenTabs(queries);
+                 }
+                 
+                 // 2. Set Context and Switch Mode
+                 if (onSetResearchContext) {
+                     onSetResearchContext({ topic, queries, workspaceId });
+                 }
+                 
+                 if (onSwitchMode) {
+                     onSwitchMode('research');
+                 }
+            }
+        }
+    };
+
     const sendMessage = async () => {
         if (!input.trim()) return;
         const text = input;
@@ -170,12 +343,31 @@ export function SidePanelContent({
         try {
             // Use chaiNotes for robust Q&A, or ai.chat with context
             // Plan said ai:chat-notes
-            const res = await api.ai.chatNotes(text, context);
-            setMessages(prev => [...prev, { role: 'assistant', content: res.response || "No response" }]);
+            // But we want voice/tool response structure now. 
+            // processChatWithContext returns { response: string }. 
+            // We should use api.ai.chat for unified structure if we want tools? 
+            // But main.ts `ai:chat` uses `processPrompt` (smart, returns JSON tools), `ai:chat-notes` uses `processChatWithContext` (simple text).
+            // Let's us `api.ai.chat` with context injected.
+            
+            let finalContext = context;
+            // If context is empty, try to fetch notes again just in case (optional, but good for robustness)
+            if (!finalContext && mode === 'notes') {
+                 // Already handled by useEffect loadNotes, but safe check.
+            }
+
+            // Construct payload for ai.chat
+            // processPrompt handles "context" property.
+            const res = await api.ai.chat({ text, context: finalContext ? { notes: finalContext } : undefined });
+            processAIResponse(res);
+            
+            // Old simpler call:
+            // const res = await api.ai.chatNotes(text, context);
+            // setMessages(prev => [...prev, { role: 'assistant', content: res.response || "No response" }]);
         } catch (e) {
             setMessages(prev => [...prev, { role: 'assistant', content: "Error communicating with AI." }]);
         }
     };
+
 
     const handleGenerateStudyMaterials = async () => {
         setLoading(true);
@@ -472,6 +664,54 @@ export function SidePanelContent({
                         {messages.length === 0 && <div className="text-gray-500 text-xs text-center">Ask questions about your notes or upload files...</div>}
                         {messages.map((m, i) => (
                             <div key={i} className={m.role === 'user' ? "text-right" : "text-left"}>
+                                {m.role === 'assistant' && m.toolCall && (
+                                    <div className="inline-block w-full max-w-[90%] text-left mt-2 mb-2">
+                                        <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 shadow-lg">
+                                            <div className="flex items-center gap-2 mb-2 text-yellow-400">
+                                                <Sparkles size={16} />
+                                                <span className="font-bold text-xs uppercase tracking-wider">
+                                                    {m.toolCall.type === 'NAVIGATE' ? 'Navigation Request' : 'Research Request'}
+                                                </span>
+                                            </div>
+                                            <p className="text-sm mb-3 text-gray-300">
+                                                {m.toolCall.type === 'NAVIGATE' 
+                                                    ? `I'd like to open ${m.toolCall.payload.url}`
+                                                    : `I'd like to start researching: ${m.toolCall.payload.topic}`
+                                                }
+                                            </p>
+                                            
+                                            {m.toolCall.status === 'pending' && (
+                                                <div className="flex gap-2">
+                                                    <button 
+                                                        onClick={() => handleToolAction(i, 'approve')}
+                                                        className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs py-2 rounded font-bold transition-colors"
+                                                    >
+                                                        Allow
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleToolAction(i, 'deny')}
+                                                        className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-xs py-2 rounded font-bold transition-colors"
+                                                    >
+                                                        Deny
+                                                    </button>
+                                                </div>
+                                            )}
+                                            
+                                            {m.toolCall.status === 'approved' && (
+                                                <div className="text-center text-xs text-green-400 font-bold bg-green-900/20 py-1 rounded">
+                                                    Approved
+                                                </div>
+                                            )}
+                                            
+                                            {m.toolCall.status === 'denied' && (
+                                                <div className="text-center text-xs text-red-400 font-bold bg-red-900/20 py-1 rounded">
+                                                    Denied
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                                
                                 {m.role === 'assistant' && m.isSummary ? (
                                     <div className="inline-block w-full max-w-[95%] text-left mt-2 mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                         <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 rounded-xl overflow-hidden shadow-xl backdrop-blur-sm">
@@ -501,11 +741,13 @@ export function SidePanelContent({
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className={`inline-block p-2 rounded-lg text-sm max-w-[90%] markdown-content ${m.role === 'user' ? 'bg-blue-600' : 'bg-gray-700'}`}>
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                            {m.content}
-                                        </ReactMarkdown>
-                                    </div>
+                                    !m.toolCall && (
+                                        <div className={`inline-block p-2 rounded-lg text-sm max-w-[90%] markdown-content ${m.role === 'user' ? 'bg-blue-600' : 'bg-gray-700'}`}>
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                {m.content}
+                                            </ReactMarkdown>
+                                        </div>
+                                    )
                                 )}
                             </div>
                         ))}
@@ -526,7 +768,15 @@ export function SidePanelContent({
                     </button>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 relative">
+                    {/* Closed Captions Overlay */}
+                    {isPlayingAudio && captionText && (
+                        <div className="absolute bottom-full mb-4 left-0 right-0 p-4 bg-black/80 text-white text-center rounded-xl backdrop-blur-md border border-white/10 shadow-2xl animate-in slide-in-from-bottom-5 fade-in duration-300 z-50">
+                             <p className="text-lg font-medium leading-relaxed">{captionText}</p>
+                        </div>
+                    )}
+
+                    <VoiceRecorder onRecordingComplete={handleVoiceRecording} isProcessing={false} />
                     <input
                         className="flex-1 bg-white/10 border border-white/10 rounded px-2 py-1 text-sm focus:outline-none"
                         value={input}
@@ -595,7 +845,11 @@ export function SidePanelContent({
     }
 
     if (mode === 'research') {
+<<<<<<< HEAD
         return <ResearchPanel expansionMode={expansionMode} onToggleExpand={onToggleExpand} onOpenTabs={onOpenTabs} onClose={onClose} />;
+=======
+        return <ResearchPanel expansionMode={expansionMode} onToggleExpand={onToggleExpand} onOpenTabs={onOpenTabs} initialContext={researchContext} />;
+>>>>>>> dd045c0 (voice toolcall)
     }
 
     return <div className="text-white">Settings</div>;

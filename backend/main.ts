@@ -147,9 +147,8 @@ ipcMain.handle('ai:chat', async (event, prompt) => {
   }
 });
 
-ipcMain.handle('ai:summarize', async (event, payload: any) => {
-  const content = payload.content || payload;
-  return await aiService.summarizeContent(content);
+ipcMain.handle('ai:summarize', async (event, text) => {
+  return await aiService.summarizeContent(text);
 });
 
 ipcMain.handle('ai:chat-notes', async (event, { query, context }) => {

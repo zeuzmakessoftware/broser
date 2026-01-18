@@ -12,6 +12,7 @@ interface BrowserAPI {
         summarize: (content: string, url?: string) => Promise<{ summary: string }>;
         extractIntent: (voiceCommand: string) => Promise<any>;
         chatNotes: (query: string, context?: string) => Promise<{ response: string }>;
+        generateStudyMaterials: (content: string) => Promise<{ summary: string; quiz: any[]; flashcards: any[] }>;
     };
     voice: {
         speak: (text: string) => Promise<void>;

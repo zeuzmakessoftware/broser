@@ -167,6 +167,10 @@ ipcMain.handle('ai:chat-notes', async (event, { query, context }) => {
   return await aiService.processChatWithContext(query, finalContext);
 });
 
+ipcMain.handle('ai:generate-study-materials', async (event, { content }) => {
+  return await aiService.generateStudyMaterials(content);
+});
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1400,

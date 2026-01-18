@@ -25,7 +25,7 @@ export const processPrompt = async (input: string | { audio?: string; context?: 
     try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let userPart: any;
-        
+
         if (typeof input === 'string') {
             userPart = { text: input };
         } else if (input.audio) {
@@ -115,6 +115,68 @@ export const summarizeContent = async (text: string) => {
         console.error('AI Summarize Error:', error);
         return {
             summary: "I couldn't generate a summary for this content."
+        };
+    }
+}
+
+export const generateStudyMaterials = async (text: string) => {
+    try {
+        // 1. Check if N8N Webhook is configured
+        if (process.env.N8N_WEBHOOK_URL) {
+            console.log('Using n8n webhook for study materials');
+            const response = await fetch(process.env.N8N_WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+            return await response.json();
+        }
+
+        // 2. Fallback to Gemini
+        console.log('Using Gemini for study materials');
+        const prompt = `
+        Analyze the following text and generate study materials.
+        Return a valid JSON object with the following structure:
+        {
+            "summary": "A concise summary of the key points as bullet points",
+            "quiz": [
+                {
+                    "question": "Question text",
+                    "options": ["A", "B", "C", "D"],
+                    "correctAnswer": "The correct option text"
+                }
+            ],
+            "flashcards": [
+                {
+                    "front": "Concept or term",
+                    "back": "Definition or explanation"
+                }
+            ]
+        }
+        
+        Text to analyze:
+        ${text.substring(0, 15000)} // Limit context window
+        `;
+
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+
+        // Parse JSON
+        let cleanText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const firstBrace = cleanText.indexOf('{');
+        const lastBrace = cleanText.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1) {
+            cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+        }
+
+        return JSON.parse(cleanText);
+
+    } catch (error) {
+        console.error('Error generating study materials:', error);
+        return {
+            summary: "Error generating study materials.",
+            quiz: [],
+            flashcards: []
         };
     }
 }

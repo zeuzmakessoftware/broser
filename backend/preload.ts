@@ -16,7 +16,8 @@ const BROWSER_API = {
     chat: (message: any, context: any) => ipcRenderer.invoke('ai:chat', { message, context }),
     summarize: (content: string, url?: string) => ipcRenderer.invoke('ai:summarize', { content, url }),
     extractIntent: (voiceCommand: string) => ipcRenderer.invoke('ai:extract-intent', { voiceCommand }),
-    chatNotes: (query: string, context?: string) => ipcRenderer.invoke('ai:chat-notes', { query, context })
+    chatNotes: (query: string, context?: string) => ipcRenderer.invoke('ai:chat-notes', { query, context }),
+    generateStudyMaterials: (content: string) => ipcRenderer.invoke('ai:generate-study-materials', { content })
   },
 
   // Voice Services

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './index.css';
 import { Sidebar } from './components/Sidebar';
@@ -10,6 +10,7 @@ interface Tab {
   id: string;
   title: string;
   url: string;
+  favicon?: string;
   active: boolean;
 }
 
@@ -201,7 +202,42 @@ function App() {
     return () => cleanup && cleanup();
   }, [api]);
 
+  const updateTab = (id: string, updates: Partial<Tab>) => {
+    setTabs(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+  };
+  
+  // Callback ref for webview to attach listeners
+  const handleWebviewRef = useCallback((node: any) => {
+    if (node) {
+      if (node.dataset.listenersAttached === 'true') return;
+      
+      const tabId = node.dataset.tabId;
 
+      const onTitleUpdated = (e: any) => {
+        if (e.title) {
+          updateTab(tabId, { title: e.title });
+        }
+      };
+
+      const onDidNavigate = (e: any) => {
+         // Also update URL if redirected
+         updateTab(tabId, { url: e.url });
+      };
+
+      const onFaviconUpdated = (e: any) => {
+        if (e.favicons && e.favicons.length > 0) {
+          updateTab(tabId, { favicon: e.favicons[0] });
+        }
+      };
+
+      node.addEventListener('page-title-updated', onTitleUpdated);
+      node.addEventListener('page-favicon-updated', onFaviconUpdated);
+      node.addEventListener('did-navigate', onDidNavigate);
+      node.addEventListener('did-navigate-in-page', onDidNavigate);
+
+      node.dataset.listenersAttached = 'true';
+    }
+  }, []);
 
   return (
     <div className="flex h-screen w-screen bg-[var(--bg-primary)] text-[var(--text-primary)] overflow-hidden font-sans transition-colors duration-300">
@@ -251,6 +287,8 @@ function App() {
                   className="w-full h-full"
                   // @ts-ignore
                   allowpopups="true"
+                  ref={handleWebviewRef}
+                  data-tab-id={tab.id}
                 />
               )}
             </div>

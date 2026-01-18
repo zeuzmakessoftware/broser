@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Globe } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,6 +8,7 @@ interface Tab {
   id: string;
   title: string;
   active: boolean;
+  favicon?: string;
 }
 
 interface TabBarProps {
@@ -39,6 +40,11 @@ export function TabBar({ tabs, onNewTab, onSwitchTab, onCloseTab, className }: T
                   : "bg-transparent text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--text-primary)]"
               )}
             >
+              {tab.favicon ? (
+                <img src={tab.favicon} alt="" className="w-4 h-4 mr-2 object-contain" />
+              ) : (
+                <Globe size={14} className="mr-2 opacity-70" />
+              )}
               <span className="flex-1 text-xs truncate mr-2">{tab.title || 'New Tab'}</span>
               <button
                 onClick={(e) => onCloseTab(tab.id, e)}

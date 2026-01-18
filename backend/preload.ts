@@ -13,7 +13,7 @@ const BROWSER_API = {
   // AI Services
   ai: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    chat: (message: any, context: any) => ipcRenderer.invoke('ai:chat', { message, context }),
+    chat: (payload: any) => ipcRenderer.invoke('ai:chat', payload),
     summarize: (content: string, url?: string) => ipcRenderer.invoke('ai:summarize', { content, url }),
     extractIntent: (voiceCommand: string) => ipcRenderer.invoke('ai:extract-intent', { voiceCommand }),
     chatNotes: (query: string, context?: string) => ipcRenderer.invoke('ai:chat-notes', { query, context }),
